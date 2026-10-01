@@ -1,4 +1,4 @@
-A reference implementation showing how a customer-facing application can use the Twilio stack — **TAC (Twilio Agent Connect)**, **ConversationRelay**, **Conversation Orchestrator**, **Conversation Memory**, **Conversation Intelligence**, and **Event Streams** — to run inbound and outbound voice + SMS conversations driven by an LLM agent, with a scheduler that owns the business logic for when and how to reach out, a test harness for developers, and a wallboard for operators.
+A reference implementation showing how a customer-facing application can use the Twilio stack — **TAC (Twilio Agent Connect)**, **ConversationRelay**, **Conversation Orchestrator**, **Conversation Memory**, **Conversation Intelligence**, and **Event Streams** — to run outbound voice + SMS conversations. Upstream apps post Jobs that describe *who* to reach and *why*; the scheduler enforces *how* and *when* — quiet hours, consent, retries, channel fallback — and reports progress back. A test harness exercises it for developers, and a wallboard surfaces live state for operators.
 
 Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed by `uv`.
 
@@ -43,7 +43,7 @@ Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed 
              │                             └──────────────────┘
              ▼
    ┌─────────────────────────────────────────────────┐
-   │                   wallboard                     │ ◀── reads ── scheduler
+   │                   wallboard                     │ 
    └─────────────────────────────────────────────────┘
 
    test-harness also reads scheduler (/jobs, /runs, /audit) and event-ingestor (per-job events)

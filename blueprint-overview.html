@@ -291,7 +291,7 @@
 
       <div class="diagram-panel">
         <div class="diagram-label">Services · Twilio products · caller</div>
-        <svg viewBox="0 0 1680 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
+        <svg viewBox="0 0 1740 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
           <defs>
             <marker id="arr-t" viewBox="0 0 10 10" refX="9" refY="5"
                     markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -401,9 +401,9 @@
           <text class="a-m" x="1272" y="197">transcript operators</text>
 
           <!-- Caller -->
-          <rect class="box-call" x="1580" y="135" width="90" height="65" rx="6"/>
-          <text class="a-h" x="1592" y="160">Caller</text>
-          <text class="a-m" x="1592" y="182">phone</text>
+          <rect class="box-call" x="1640" y="135" width="90" height="65" rx="6"/>
+          <text class="a-h" x="1652" y="160">Caller</text>
+          <text class="a-m" x="1652" y="182">phone</text>
 
           <!-- Arrow 1a: Upstream → scheduler -->
           <line class="ar-t" x1="170" y1="110" x2="354" y2="110" marker-end="url(#arr-t)"/>
@@ -422,20 +422,20 @@
           <text class="a-tb" x="932" y="89" text-anchor="middle">connect</text>
 
           <!-- Arrow 4: Twilio platform → Caller (voice) -->
-          <line class="ar-t" x1="1540" y1="170" x2="1574" y2="170" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="1557" y="162" text-anchor="middle">voice</text>
+          <line class="ar-t" x1="1540" y1="170" x2="1634" y2="170" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1587" y="162" text-anchor="middle">voice</text>
 
           <!-- Arrow 5: Caller → Twilio (inbound, dashed) -->
-          <line class="ar-t-d" x1="1580" y1="190" x2="1546" y2="190" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="1563" y="212" text-anchor="middle">inbound</text>
+          <line class="ar-t-d" x1="1640" y1="190" x2="1546" y2="190" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1593" y="212" text-anchor="middle">inbound</text>
 
-          <!-- Arrow 6: Twilio → scheduler StatusCallback (dashed curve) -->
-          <path class="ar-t-d" d="M 1120 290 Q 820 360 586 190" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="860" y="378" text-anchor="middle">StatusCallback</text>
+          <!-- Arrow 6: Twilio → scheduler StatusCallback (dashed curve, routed below agent-connect) -->
+          <path class="ar-t-d" d="M 1050 290 Q 760 420 586 250" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="790" y="358" text-anchor="middle">StatusCallback</text>
 
           <!-- Arrow 7: Twilio → event-ingestor (Event Streams) -->
-          <path class="ar-v" d="M 1240 290 Q 900 440 586 380" marker-end="url(#arr-v)"/>
-          <text class="a-tv" x="1020" y="450" text-anchor="middle">Event Streams</text>
+          <path class="ar-v" d="M 1240 290 Q 906 475 586 380" marker-end="url(#arr-v)"/>
+          <text class="a-tv" x="906" y="422" text-anchor="middle">Event Streams</text>
 
           <!-- Arrow 8: scheduler → event-ingestor (dumps JobRun events) -->
           <line class="ar-v" x1="470" y1="260" x2="470" y2="324" marker-end="url(#arr-v)"/>
