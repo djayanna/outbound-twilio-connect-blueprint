@@ -1,6 +1,44 @@
-A reference implementation showing how a customer-facing application can use the Twilio stack — **TAC (Twilio Agent Connect)**, **ConversationRelay**, **Conversation Orchestrator**, **Conversation Memory**, **Conversation Intelligence**, and **Event Streams** — to run outbound voice + SMS conversations. Upstream apps post Jobs that describe *who* to reach and *why*; the scheduler enforces *how* and *when* — quiet hours, consent, retries, channel fallback — and reports progress back. A test harness exercises it for developers, and a wallboard surfaces live state for operators.
+A reference implementation showing how a customer-facing application can use the Twilio stack — **TAC (Twilio Agent Connect)**, **ConversationRelay**, **Conversation Orchestrator**, **Conversation Memory**, **Conversation Intelligence**, and **Event Streams** — to run outbound voice + SMS conversations powered by an AI agent.
+
+It sits between your system of record (EHR, OMS, CRM) or your business application and Twilio. Your systems decide *who* to reach, *why*, and under what rules — timezone, quiet hours, consent, retry budget, channel preference. This layer *enforces* those rules, runs the conversation across voice and SMS, and reports every outcome back so the record of truth stays in your systems.
+
+A test harness exercises the flow for developers; a wallboard surfaces live state for operators.
 
 Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed by `uv`.
+
+---
+
+## Why you'd build this
+
+Most businesses have systems of record that know *when* a customer needs to be contacted — the EHR knows tomorrow's appointments, the OMS knows which package is 20 minutes out, the growth database knows which users haven't opened the app in three weeks — but those systems weren't designed to run the actual conversation. 
+
+
+
+A cron job that fires SMS from inside the CRM is enough until the first time it texts someone at 2 a.m., skips a time zone, double-dials on a retry, or has no record of whether the customer actually heard back.
+
+Some use cases this blueprint is shaped around:
+
+- Healthcare appointment confirmations and reminders
+- Last-mile delivery communications
+- Re-engaging quiet users (abandoned carts, lapsed subscriptions, dormant trials)
+- Payment reminders and collections outreach
+- Service outage or incident notifications with two-way acknowledgement
+
+
+### A broker for conversations
+
+If you've worked with a message queue, the shape will be familiar.
+
+| Message queue | This blueprint |
+|---|---|
+| Producer publishes a message | Upstream app `POST /jobs` |
+| Broker holds and routes work | Scheduler holds `Job`s, applies policy, picks the moment to fire |
+| Delivery rules (retry, DLQ, ordering) | Quiet hours, consent, retries, channel fallback, dedupe, concurrency |
+| Consumer processes the message | Agent-connect runs the LLM conversation over Twilio |
+| Ack / nack back to producer | `upstream_callback_url` POSTs on each Job lifecycle event |
+| Dead-letter queue | `JobRun.status = failed` with `terminal_reason`, surfaced in audit + wallboard |
+
+The scheduler is in-process sqlite, for now.
 
 ---
 

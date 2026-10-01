@@ -121,12 +121,355 @@
     font-family: var(--font-h); font-size: 20px; font-weight: 600; margin-bottom: 8px;
   }
   .concept-block p { color: var(--text-dim); font-size: 14.5px; margin-bottom: 10px; }
-  .concept-block code {
-    font-family: var(--font-m); font-size: 12.5px; color: var(--terracotta);
+  p code, li code, td code, .svc-desc code, .diagram-caption code, .concept-block code, .arch-recap code {
+    font-family: var(--font-m); font-size: 0.85em; color: var(--terracotta);
     background: var(--terracotta-soft); padding: 1px 6px; border-radius: 3px;
+    white-space: nowrap;
   }
   @media (max-width: 760px) {
     .concept-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Why slide */
+  .why-lede {
+    font-size: 15.5px; color: var(--text-dim); max-width: 780px; margin-bottom: 24px;
+  }
+  .why-use-cases { display: flex; flex-direction: column; margin-bottom: 28px; }
+  .why-use-case {
+    padding: 14px 0 14px 22px; border-bottom: 1px dotted var(--line); position: relative;
+  }
+  .why-use-case:last-child { border-bottom: none; }
+  .why-use-case::before {
+    content: "✦"; position: absolute; left: 0; top: 14px; color: var(--terracotta); font-size: 11px;
+  }
+  .why-uc-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .why-uc-desc { color: var(--text-dim); font-size: 14px; max-width: 780px; }
+
+  .mental-model-caption {
+    font-family: var(--font-h); font-style: italic; color: var(--text-dim);
+    font-size: 15px; margin: 14px 0 10px; max-width: 780px;
+  }
+  table.cmp {
+    width: 100%; max-width: 820px; border-collapse: collapse; margin-top: 10px;
+  }
+  table.cmp th, table.cmp td {
+    text-align: left; padding: 9px 14px; border-bottom: 1px dotted var(--line);
+    font-size: 14px; color: var(--text-dim); vertical-align: top;
+  }
+  table.cmp th {
+    font-family: var(--font-m); font-size: 11px; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--text-faint); font-weight: 500;
+  }
+  table.cmp td:first-child { color: var(--text); }
+
+  /* Service deep-dive slides */
+  .svc-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .svc-head h2 { margin-bottom: 0; }
+  .svc-head .svc-port {
+    font-family: var(--font-m); font-size: 12.5px; color: var(--text-faint);
+  }
+  .svc-tagline {
+    font-family: var(--font-h); font-style: italic; color: var(--text-dim);
+    font-size: 16px; margin-bottom: 24px; max-width: 760px;
+  }
+  .svc-section-label {
+    font-family: var(--font-m); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint); margin: 24px 0 10px;
+  }
+  .svc-resp { list-style: none; padding: 0; margin: 0; }
+  .svc-resp li {
+    padding: 10px 0 10px 22px; border-bottom: 1px dotted var(--line);
+    color: var(--text-dim); font-size: 14.5px; position: relative;
+  }
+  .svc-resp li:last-child { border-bottom: none; }
+  .svc-resp li::before {
+    content: "·"; position: absolute; left: 6px; top: 7px;
+    color: var(--terracotta); font-size: 20px;
+  }
+  .svc-resp li strong { color: var(--text); font-weight: 600; }
+
+  .code-panel {
+    background: var(--bg-alt); border: 1px dotted var(--line); border-radius: 6px;
+    margin: 10px 0; overflow: hidden;
+  }
+  .code-label {
+    font-family: var(--font-m); font-size: 11px; color: var(--text-faint);
+    padding: 7px 14px; border-bottom: 1px dotted var(--line);
+  }
+  .code-panel pre { margin: 0; padding: 14px 16px; overflow-x: auto; }
+  .code-panel code {
+    font-family: var(--font-m); font-size: 12.5px; line-height: 1.65;
+    color: var(--text); white-space: pre; background: none; padding: 0;
+  }
+
+  /* UI mockup — test-harness and wallboard */
+  .ui-mock {
+    background: #FBF8EE; border: 1px solid var(--line); border-radius: 8px;
+    overflow: hidden; margin: 14px 0; box-shadow: 0 2px 10px rgba(43,36,30,0.06);
+  }
+  .ui-mock-chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: #EFE7D6; border-bottom: 1px solid var(--line);
+  }
+  .ui-mock-chrome .dots { display: flex; gap: 5px; }
+  .ui-mock-chrome .dots span {
+    width: 10px; height: 10px; border-radius: 50%; display: block;
+  }
+  .ui-mock-chrome .dots span:nth-child(1) { background: #E88078; }
+  .ui-mock-chrome .dots span:nth-child(2) { background: #E8C34F; }
+  .ui-mock-chrome .dots span:nth-child(3) { background: #7FBF7F; }
+  .ui-mock-chrome .url {
+    flex: 1; font-family: var(--font-m); font-size: 11.5px;
+    background: var(--bg); padding: 3px 10px; border-radius: 4px; color: var(--text-dim);
+    border: 1px solid var(--line);
+  }
+  .ui-mock-body { padding: 20px 24px; font-size: 13px; color: var(--text); }
+  .ui-mock-body h3 {
+    font-family: var(--font-h); font-size: 22px; font-weight: 600;
+    margin-bottom: 2px; color: var(--text);
+  }
+  .ui-mock-body .ui-sub {
+    font-family: var(--font-m); font-size: 11px; color: var(--text-faint);
+    margin-bottom: 16px;
+  }
+  .ui-mock-body .ui-section-title {
+    font-family: var(--font-m); font-size: 10.5px; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--text-faint);
+    margin: 14px 0 8px; padding-bottom: 4px; border-bottom: 1px dotted var(--line);
+  }
+
+  /* Test-harness mock specifics — Paper-themed, editorial layout */
+  .th-top-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 16px;
+  }
+  .th-tile {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 13px 15px;
+  }
+  .th-tile .k {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px;
+  }
+  .th-tile h4 {
+    font-family: var(--font-h); font-size: 17px; font-weight: 600;
+    margin-bottom: 3px; color: var(--text);
+  }
+  .th-tile .th-help {
+    font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4;
+  }
+  .th-field { margin-bottom: 7px; }
+  .th-field label {
+    display: block; font-family: var(--font-m); font-size: 9.5px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint);
+    margin-bottom: 2px;
+  }
+  .th-field .input {
+    display: block; width: 100%; font-family: var(--font-m); font-size: 12px;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px;
+    background: #FBF8EE; color: var(--text);
+  }
+  .th-field .input.placeholder { color: var(--text-faint); font-style: italic; }
+  .th-field textarea.input { min-height: 40px; resize: none; line-height: 1.4; }
+
+  .th-upload-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 20px 16px; margin-bottom: 10px;
+    border: 1.5px dashed rgba(181,80,46,0.35); border-radius: 5px;
+    background: var(--terracotta-soft);
+  }
+  .th-upload-box .ic {
+    font-family: var(--font-h); font-size: 20px; color: var(--terracotta); line-height: 1;
+  }
+  .th-upload-box .lbl {
+    font-size: 12px; color: var(--text); text-align: center;
+  }
+  .th-upload-box .fname {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--text-faint);
+  }
+
+  .th-allowlist {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10.5px; color: var(--text-dim); margin: 4px 0 8px;
+  }
+  .th-allowlist .toggle {
+    width: 22px; height: 12px; background: #D4C7B0; border-radius: 999px;
+    position: relative; flex-shrink: 0;
+  }
+  .th-allowlist .toggle::after {
+    content: ""; position: absolute; top: 1px; left: 1px; width: 10px; height: 10px;
+    background: #FBF8EE; border-radius: 50%;
+  }
+  .th-allowlist .lbl { font-weight: 600; color: var(--text); }
+
+  .th-btn {
+    display: inline-block; text-align: center;
+    background: var(--terracotta); color: #FBF8EE;
+    font-family: var(--font-m); font-size: 11px; letter-spacing: 0.04em;
+    text-transform: uppercase; font-weight: 500;
+    padding: 7px 14px; border-radius: 3px; margin-top: 2px; width: 100%;
+  }
+  .th-btn.ghost {
+    background: #FBF8EE; color: var(--text); border: 1px solid var(--line);
+  }
+
+  /* Lower split: history + detail */
+  .th-split {
+    display: grid; grid-template-columns: 260px 1fr; gap: 14px;
+  }
+
+  .th-hist-head {
+    display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;
+  }
+  .th-hist-head .k {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .th-hist-head h4 {
+    font-family: var(--font-h); font-size: 17px; font-weight: 600; margin: 0;
+  }
+  .th-hist-head .count {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--text-faint);
+  }
+
+  .th-hist-item {
+    display: grid; grid-template-columns: 1fr auto; align-items: center;
+    gap: 6px 10px; padding: 10px 0;
+    border-bottom: 1px dotted var(--line);
+  }
+  .th-hist-item:last-child { border-bottom: none; }
+  .th-hist-item.active { background: var(--terracotta-soft); margin: 0 -12px; padding: 10px 12px; border-radius: 4px; border-bottom: none; }
+  .th-hist-item.active + .th-hist-item { border-top: none; }
+  .th-hist-item .num { font-weight: 600; font-size: 12.5px; color: var(--text); }
+  .th-hist-item .when {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--text-faint);
+    grid-column: 1 / span 2;
+  }
+  .pill {
+    font-family: var(--font-m); font-size: 10px; padding: 1px 8px; border-radius: 999px;
+    background: var(--terracotta-soft); color: var(--terracotta); border: 1px solid rgba(181,80,46,0.25);
+    letter-spacing: 0.03em;
+  }
+  .pill.live { background: var(--dusty-blue-soft); color: var(--dusty-blue); border-color: rgba(78,112,137,0.3); }
+  .pill.danger { background: #FBF8EE; color: #B85050; border-color: #E8B8B0; }
+
+  .th-active-mini {
+    padding: 10px 12px; margin-bottom: 10px; border-radius: 4px;
+    background: var(--dusty-blue-soft); border: 1px dotted rgba(78,112,137,0.3);
+  }
+  .th-active-mini .k {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--dusty-blue); margin-bottom: 2px;
+  }
+  .th-active-mini .msg { font-family: var(--font-h); font-style: italic; font-size: 12.5px; color: var(--text-dim); }
+
+  /* Detail panel */
+  .th-detail .conv-id {
+    font-family: var(--font-m); font-size: 11px; color: var(--text-faint);
+    letter-spacing: 0.04em; margin-bottom: 2px;
+  }
+  .th-detail .conv-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 12px;
+  }
+  .th-detail .conv-head h4 {
+    font-family: var(--font-h); font-size: 20px; font-weight: 600; margin: 0;
+  }
+  .th-detail .conv-head .right { display: flex; align-items: center; gap: 8px; }
+
+  .th-tabs {
+    display: flex; gap: 22px; border-bottom: 1px dotted var(--line); margin-bottom: 14px;
+  }
+  .th-tabs .tab {
+    font-family: var(--font-m); font-size: 11.5px; padding: 0 0 8px;
+    color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .th-tabs .tab.active { color: var(--terracotta); border-bottom-color: var(--terracotta); }
+
+  .th-summary-label {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px;
+  }
+  .th-summary {
+    font-family: var(--font-h); font-size: 15px; line-height: 1.55;
+    color: var(--text); margin-bottom: 8px; font-style: italic;
+    border-left: 2px solid var(--terracotta); padding-left: 14px;
+  }
+  .th-source {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--text-faint); margin-bottom: 18px;
+  }
+
+  .th-obs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .th-obs-row {
+    display: flex; justify-content: space-between; gap: 8px;
+    padding: 7px 10px; background: #FBF8EE; border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  .th-obs-row .ok {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .th-obs-row .ov { font-size: 12px; color: var(--text); font-weight: 500; text-align: right; }
+
+  .th-transcript-empty {
+    font-family: var(--font-h); font-style: italic; font-size: 13px; color: var(--text-faint);
+    padding: 10px 14px; border: 1px dotted var(--line); border-radius: 4px;
+    background: var(--bg-alt);
+  }
+
+  .th-trace-link {
+    font-family: var(--font-m); font-size: 11px; color: var(--terracotta);
+    margin-top: 14px; padding-top: 10px; border-top: 1px dotted var(--line);
+  }
+
+  /* Wallboard mock specifics */
+  .wb-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 6px; }
+  .wb-kpi {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
+    padding: 10px 12px;
+  }
+  .wb-kpi .k-label {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px;
+  }
+  .wb-kpi .k-val {
+    font-family: var(--font-h); font-size: 24px; font-weight: 600; color: var(--text);
+    line-height: 1;
+  }
+  .wb-kpi .k-sub {
+    font-family: var(--font-m); font-size: 10.5px; color: var(--terracotta); margin-top: 3px;
+  }
+  .wb-kpi .k-sub.dim { color: var(--text-faint); }
+
+  .wb-audit {
+    width: 100%; border-collapse: collapse; font-size: 11.5px;
+    font-family: var(--font-m); margin-top: 4px;
+  }
+  .wb-audit th, .wb-audit td {
+    text-align: left; padding: 5px 8px; border-bottom: 1px dotted var(--line);
+    color: var(--text-dim);
+  }
+  .wb-audit th {
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-faint); font-weight: 500;
+  }
+  .wb-audit td:first-child { color: var(--text-faint); }
+
+  .wb-queue-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .wb-queue-row .q-label { width: 150px; font-size: 12px; }
+  .wb-queue-row .q-bar {
+    flex: 1; height: 10px; background: var(--bg-alt); border-radius: 5px; overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .wb-queue-row .q-fill {
+    height: 100%; background: var(--terracotta);
+  }
+  .wb-queue-row .q-count {
+    font-family: var(--font-m); font-size: 11.5px; color: var(--text-dim); width: 32px; text-align: right;
   }
 
   /* Diagram panel */
@@ -212,7 +555,10 @@
       <p class="lede">
         A reference implementation showing how a customer-facing application wires the Twilio stack —
         Agent Connect, ConversationRelay, Conversation Orchestrator, Memory, Intelligence, and Event Streams —
-        to run inbound and outbound voice + SMS driven by an LLM agent, with a scheduler owning the business logic.
+        to run outbound voice + SMS conversations driven by an LLM agent. Upstream apps post <code>Job</code>s
+        that describe <em>who</em> to reach and <em>why</em>; the scheduler enforces <em>how</em> and <em>when</em>
+        — quiet hours, consent, retries, channel fallback — and reports progress back via
+        <code>upstream_callback_url</code>.
       </p>
       <div class="meta-row">
         <div class="meta-item"><div class="k">Stack</div><div class="v">Python 3.11 · FastAPI · uv</div></div>
@@ -223,10 +569,109 @@
     </div>
   </section>
 
-  <!-- ===== 01 — What this is ===== -->
-  <section class="slide" data-menu="What this is" data-menu-group="Overview">
+  <!-- ===== 01 — Why ===== -->
+  <section class="slide" data-menu="Why this exists" data-menu-group="Overview">
     <div class="slide-inner">
       <div class="eyebrow">01</div>
+      <h2>Why you'd build this</h2>
+      <p class="why-lede">
+        Most businesses have systems of record that know <em>when</em> a customer needs to be contacted —
+        the EHR knows tomorrow's appointments, the OMS knows which package is 20 minutes out, the growth
+        database knows which users haven't opened the app in three weeks. Those systems weren't designed
+        to run the actual conversation. A cron inside the CRM firing SMS is enough until the first time
+        it texts someone at 2 a.m., skips a time zone, double-dials on a retry, or has no record of
+        whether the customer actually heard back.
+      </p>
+
+      <div class="why-use-cases">
+        <div class="why-use-case">
+          <div class="why-uc-title">Healthcare appointment confirmations and reminders</div>
+          <div class="why-uc-desc">
+            The EHR files the appointment; this layer calls or texts the patient the day before,
+            confirms or reschedules in natural language, and writes the outcome back. Consent is implied
+            by the care relationship, but TCPA quiet hours and HIPAA posture still apply.
+          </div>
+        </div>
+        <div class="why-use-case">
+          <div class="why-uc-title">Last-mile delivery communications</div>
+          <div class="why-uc-desc">
+            The OMS hands off a shipment; this layer sends an ETA SMS, handles "I'm not home" replies,
+            offers to reschedule, and escalates to voice if a signature is required. Timezone of the
+            recipient, not the warehouse, drives timing.
+          </div>
+        </div>
+        <div class="why-use-case">
+          <div class="why-uc-title">Re-engaging quiet users</div>
+          <div class="why-uc-desc">
+            Growth tooling flags customers who've gone silent — abandoned carts, lapsed subscriptions,
+            trial users who never activated. This layer runs a short, personalized conversation (voice
+            for high-value accounts, SMS otherwise), captures the reason for the drop-off into Memory,
+            and feeds the result back to the upstream system.
+          </div>
+        </div>
+      </div>
+
+      <p class="why-lede" style="margin-bottom: 10px;">
+        The common shape: an upstream system knows <em>that</em> a conversation should happen, but
+        running it well requires policy (TCPA, consent, DNC), reliability (retries, channel fallback,
+        dedupe), and conversational intelligence (identity resolution, memory of prior interactions,
+        operator-driven follow-ups). This blueprint is where those three concerns live.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== 02 — Mental model ===== -->
+  <section class="slide" data-menu="Mental model" data-menu-group="Overview">
+    <div class="slide-inner">
+      <div class="eyebrow">02</div>
+      <h2>Mental model: a policy-aware broker for conversations</h2>
+      <p class="mental-model-caption">
+        If you've worked with a message queue, the shape will be familiar.
+      </p>
+      <table class="cmp">
+        <thead>
+          <tr><th>Message queue</th><th>This blueprint</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Producer publishes a message</td>
+            <td>Upstream app <code>POST /jobs</code></td>
+          </tr>
+          <tr>
+            <td>Broker holds and routes work</td>
+            <td>Scheduler holds <code>Job</code>s, applies policy, picks the moment to fire</td>
+          </tr>
+          <tr>
+            <td>Delivery rules (retry, DLQ, ordering)</td>
+            <td>Quiet hours, consent, retries, channel fallback, dedupe, concurrency</td>
+          </tr>
+          <tr>
+            <td>Consumer processes the message</td>
+            <td>agent-connect runs the LLM conversation over Twilio</td>
+          </tr>
+          <tr>
+            <td>Ack / nack back to producer</td>
+            <td><code>upstream_callback_url</code> POSTs on each Job lifecycle event</td>
+          </tr>
+          <tr>
+            <td>Dead-letter queue</td>
+            <td><code>JobRun.status = failed</code> with <code>terminal_reason</code>, surfaced in audit + wallboard</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="why-lede" style="margin-top: 20px;">
+        The analogy is a mental model, not an infrastructure claim — the scheduler is in-process sqlite,
+        not Kafka. The twist versus a generic queue is that the delivery policy is domain-aware (TCPA,
+        timezone-local quiet hours, consent records) and the "work" being delivered is a stateful,
+        LLM-driven conversation rather than a one-shot message.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== 03 — What this is ===== -->
+  <section class="slide" data-menu="What this is" data-menu-group="Overview">
+    <div class="slide-inner">
+      <div class="eyebrow">03</div>
       <h2>What this blueprint shows</h2>
       <div class="svc-list">
         <div class="svc-item">
@@ -253,10 +698,10 @@
     </div>
   </section>
 
-  <!-- ===== 02 — Services ===== -->
+  <!-- ===== 04 — Services ===== -->
   <section class="slide" data-menu="Services" data-menu-group="Overview">
     <div class="slide-inner">
-      <div class="eyebrow">02</div>
+      <div class="eyebrow">04</div>
       <h2>Services</h2>
       <div class="svc-list">
         <div class="svc-item">
@@ -283,10 +728,377 @@
     </div>
   </section>
 
-  <!-- ===== 03 — Architecture ===== -->
+  <!-- ====================================================================
+       Service deep-dive slides — one slide per service
+       ==================================================================== -->
+
+  <!-- scheduler -->
+  <section class="slide" data-menu="scheduler" data-menu-group="Services">
+    <div class="slide-inner">
+      <div class="eyebrow">Service · scheduler</div>
+      <div class="svc-head">
+        <h2>scheduler</h2>
+        <span class="svc-port">:3001 · FastAPI · Python 3.11</span>
+      </div>
+      <p class="svc-tagline">
+        The brain. Owns Jobs, JobRuns, and <code>audit.db</code>. All business policy lives here —
+        upstream apps don't make scheduling decisions, this service does.
+      </p>
+
+      <div class="svc-section-label">Responsibilities</div>
+      <ul class="svc-resp">
+        <li><strong>Accept</strong> <code>POST /jobs</code> from upstream apps and the test-harness.</li>
+        <li><strong>Run policy</strong> before firing: TCPA quiet hours in the recipient's timezone, consent gate (no marketing SMS without a record), do-not-contact suppression, dedupe on <code>(scenario, to)</code>, concurrency caps per campaign.</li>
+        <li><strong>Fire outbound</strong> by calling agent-connect's <code>/outbound</code>, with <code>statusCallback</code> on <code>Calls.create</code> / <code>Messages.create</code> pointing at scheduler's own endpoint.</li>
+        <li><strong>Advance JobRun state</strong> on per-call / per-message <code>StatusCallback</code>, with no event-ingestor hop.</li>
+        <li><strong>Retry + channel fallback</strong> (voice no-answer → SMS).</li>
+        <li><strong>Report back</strong> to upstream via <code>upstream_callback_url</code> on each lifecycle transition.</li>
+      </ul>
+
+      <div class="svc-section-label">Folder layout</div>
+      <div class="code-panel">
+        <div class="code-label">apps/scheduler/src/scheduler/</div>
+<pre><code>├── main.py              # FastAPI app
+├── http/                # /jobs, /jobs/{id}, /runs, /audit, /twilio/status
+├── jobs/                # queue + JobRun lifecycle
+├── policy/              # time-window, consent, dedupe, suppression
+├── fallback/            # channel fallback rules
+├── outbound/            # calls agent-connect; sets statusCallback URL
+├── callbacks/           # Twilio StatusCallback handlers
+└── infra/               # db, otel, config</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- agent-connect -->
+  <section class="slide" data-menu="agent-connect" data-menu-group="Services">
+    <div class="slide-inner">
+      <div class="eyebrow">Service · agent-connect</div>
+      <div class="svc-head">
+        <h2>agent-connect</h2>
+        <span class="svc-port">:3002 · FastAPI · TAC · Python 3.11</span>
+      </div>
+      <p class="svc-tagline">
+        The Twilio Agent Connect application. The LLM-powered conversation runtime that connects
+        your LLM to Twilio's channels — inbound and outbound, voice and SMS.
+      </p>
+
+      <div class="svc-section-label">Responsibilities</div>
+      <ul class="svc-resp">
+        <li><strong>Inbound SMS webhook</strong> via TAC's <code>SMSChannel</code>, configured on the Twilio number.</li>
+        <li><strong>Inbound + outbound voice</strong> via ConversationRelay (TAC's <code>VoiceChannel</code>) — WebSocket for the STT/TTS + LLM turn loop.</li>
+        <li><strong>Memory retrieval</strong> before each response — identity resolution + Recall against Conversation Memory.</li>
+        <li><strong>Orchestrator session management</strong> — Conversation + Communication state on the Twilio side.</li>
+        <li><strong>Tools</strong> exposed via <code>@function_tool</code> (lookup account, schedule callback, transfer, etc.) called by the LLM mid-conversation.</li>
+        <li><strong>Outbound conversation creation</strong> on behalf of the scheduler.</li>
+      </ul>
+
+      <div class="svc-section-label">Folder layout</div>
+      <div class="code-panel">
+        <div class="code-label">apps/agent_connect/src/agent_connect/</div>
+<pre><code>├── main.py              # TAC + VoiceChannel + SMSChannel wiring
+├── handlers/            # on_message_ready implementations
+├── tools/               # @function_tool definitions
+├── prompts/             # system prompts per scenario
+└── infra/               # otel, config</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- event-ingestor -->
+  <section class="slide" data-menu="event-ingestor" data-menu-group="Services">
+    <div class="slide-inner">
+      <div class="eyebrow">Service · event-ingestor</div>
+      <div class="svc-head">
+        <h2>event-ingestor</h2>
+        <span class="svc-port">:3003 · FastAPI · Python 3.11</span>
+      </div>
+      <p class="svc-tagline">
+        A dumb sink for account-level Twilio Event Streams and scheduler-emitted lifecycle events.
+        It validates, dedupes, and appends. No routing, no business logic.
+      </p>
+
+      <div class="svc-section-label">Responsibilities</div>
+      <ul class="svc-resp">
+        <li><strong>POST /twilio/events</strong> — Twilio Event Streams webhook sink.</li>
+        <li><strong>Validate Twilio signature</strong> on every request using <code>RequestValidator</code>.</li>
+        <li><strong>Dedupe on event id</strong> via the <code>seen_events</code> sqlite table — Event Streams is at-least-once.</li>
+        <li><strong>Append every event</strong> to the event store (Intelligence <code>OperatorResult</code>, errors, account-wide events).</li>
+        <li><strong>Accept scheduler-emitted events</strong> so the wallboard has a single store to read from.</li>
+      </ul>
+
+      <div class="svc-section-label">What it does NOT do</div>
+      <ul class="svc-resp">
+        <li><strong>Does not route events to scheduler.</strong> Per-call / per-message lifecycle goes directly to scheduler via Twilio <code>StatusCallback</code>.</li>
+        <li><strong>Does not classify event types.</strong> Consumers (wallboard, debuggers) decide which events are relevant when they read.</li>
+      </ul>
+
+      <div class="svc-section-label">Folder layout</div>
+      <div class="code-panel">
+        <div class="code-label">apps/event_ingestor/src/event_ingestor/</div>
+<pre><code>├── main.py              # FastAPI app
+├── http/                # /twilio/events
+├── validation/          # Twilio signature validation
+├── store/               # append-only event writer + reader
+└── infra/</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- test-harness (with UI mock) -->
+  <section class="slide" data-menu="test-harness" data-menu-group="Services">
+    <div class="slide-inner wide">
+      <div class="eyebrow">Service · test-harness</div>
+      <div class="svc-head">
+        <h2>test-harness</h2>
+        <span class="svc-port">:5173 · Vite + React · developer tool</span>
+      </div>
+      <p class="svc-tagline">
+        Place single or batch test calls against the current agent, keep a history of past runs, and
+        inspect what each conversation produced — transcript, Intelligence summary, Memory observations,
+        and the OTel trace link.
+      </p>
+
+      <div class="svc-section-label">Sample UI</div>
+      <div class="ui-mock">
+        <div class="ui-mock-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="url">localhost:5173</div>
+        </div>
+        <div class="ui-mock-body">
+          <h3>test-harness</h3>
+          <div class="ui-sub">single call · batch file · live state · past conversations</div>
+
+          <!-- Top row: three composer tiles, side by side -->
+          <div class="th-top-row">
+            <!-- Call a number -->
+            <div class="th-tile">
+              <div class="k">New test</div>
+              <h4>Call a number</h4>
+              <!-- <div class="th-help">Use your own phone to speak with the current agent.</div> -->
+              <div class="th-field">
+                <label>Phone number</label>
+                <span class="input">+44 7700 900 123</span>
+              </div>
+              <div class="th-field">
+                <label>Customer name</label>
+                <span class="input">Tylen</span>
+              </div>
+              <div class="th-field">
+                <label>Welcome greeting</label>
+                <span class="input placeholder">Optional</span>
+              </div>
+              <!-- <div class="th-allowlist">
+                <div class="toggle"></div>
+                <span class="lbl">Bypass number allowlist</span>
+                <span>— controlled testing only.</span>
+              </div> -->
+              <span class="th-btn">Start test call</span>
+            </div>
+
+            <!-- Call multiple numbers (free-text) -->
+            <div class="th-tile">
+              <div class="k">Batch test</div>
+              <h4>Call multiple numbers</h4>
+              <div class="th-help">One number per line (or comma-separated), up to 20 at a time. Customer names are looked up from the shared profile automatically.</div>
+              <div class="th-field">
+                <label>Phone numbers</label>
+                <textarea class="input" readonly>+44 7700 900 123
++44 7700 900 124
++44 7700 900 125</textarea>
+              </div>
+              <div class="th-field">
+                <label>Welcome greeting</label>
+                <span class="input placeholder">Optional</span>
+              </div>
+              <!-- <div class="th-allowlist">
+                <div class="toggle"></div>
+                <span class="lbl">Bypass number allowlist</span>
+              </div> -->
+              <span class="th-btn">Start batch calls</span>
+            </div>
+
+            <!-- Upload Jobs JSON (the component you liked) -->
+            <div class="th-tile">
+              <div class="k">From file</div>
+              <h4>Upload Jobs JSON</h4>
+              <div class="th-help">Upload a <code>jobs.json</code> payload and POST every Job to <code>scheduler /jobs</code>. Captures each decision (accepted / suppressed) and streams per-Job status.</div>
+              <div class="th-upload-box">
+                <span class="ic">↑</span>
+                <span class="lbl">Drop a file or click to browse</span>
+                <span class="fname">examples/jobs.json · 3 jobs</span>
+              </div>
+              <div style="font-family: var(--font-m); font-size: 10.5px; color: var(--text-dim); line-height: 1.6;">
+                <div><span style="color: var(--terracotta);">▸ call-0001</span> → accepted · voice · 14:02:11</div>
+                <div><span style="color: var(--terracotta);">▸ sms-0002</span> → accepted · sms · 14:02:12</div>
+                <div><span style="color: var(--ochre);">▸ call-0003</span> → suppressed · quiet_hours · 14:02:12</div>
+              </div>
+              <span class="th-btn ghost" style="margin-top: 10px;">Upload another</span>
+            </div>
+          </div>
+
+          <!-- Bottom row: history (left) + detail (right) -->
+          <div class="th-split">
+            <!-- History + active -->
+            <div>
+              <div class="th-active-mini">
+                <div class="k">Live · 1 active</div>
+                <div class="msg">+44 7700 900 124 — ringing, 00:04</div>
+              </div>
+
+              <div class="th-hist-head">
+                <div>
+                  <div class="k">History</div>
+                  <h4>Past test calls</h4>
+                </div>
+                <div class="count">4 calls</div>
+              </div>
+
+              <div class="th-hist-item active">
+                <div class="num">+44 7700 900 123</div>
+                <span class="pill">Completed</span>
+                <div class="when">11 Sept 2026 · 13:20 · 00:52</div>
+              </div>
+              <div class="th-hist-item">
+                <div class="num">+44 7700 900 123</div>
+                <span class="pill">Completed</span>
+                <div class="when">01 Sept 2026 · 13:20 · 01:04</div>
+              </div>
+              <div class="th-hist-item">
+                <div class="num">+44 7700 900 125</div>
+                <span class="pill danger">No-answer</span>
+                <div class="when">27 Aug 2026 · 10:00 · 00:28</div>
+              </div>
+              <div class="th-hist-item">
+                <div class="num">+44 7700 900 123</div>
+                <span class="pill">Completed</span>
+                <div class="when">27 Aug 2026 · 09:14 · 00:47</div>
+              </div>
+            </div>
+
+            <!-- Detail -->
+            <div class="th-detail">
+              <div class="conv-id">CONV_CONVERSATION_01M28A0VS9EJMSME8GY6AQ2F1Y</div>
+              <div class="conv-head">
+                <h4>+44 7700 900 123</h4>
+                <div class="right">
+                  <span class="pill">Completed</span>
+                  <span class="pill danger">Delete</span>
+                </div>
+              </div>
+
+              <div class="th-tabs">
+                <span class="tab active">Summary</span>
+                <span class="tab">Transcript</span>
+                <span class="tab">Memory</span>
+                <span class="tab">Intelligence</span>
+                <span class="tab">Profile</span>
+              </div>
+
+              <div class="th-summary-label">Intelligence · summary</div>
+              <div class="th-summary">
+                The agent informed the customer that their finance approval in principle remains
+                active but cannot move forward on the application until a discussion occurs. The
+                agent asked the customer to book a call by replying with either Yes or No.
+              </div>
+              <div class="th-source">
+                source: intelligence_operatorresult_01m28br67zfk99ynb3cgrpasjh
+              </div>
+
+              <div class="th-summary-label">Observations · 4 captured</div>
+              <div class="th-obs">
+                <div class="th-obs-row"><span class="ok">sentiment</span><span class="ov">positive</span></div>
+                <div class="th-obs-row"><span class="ok">intent</span><span class="ov">book-callback</span></div>
+                <div class="th-obs-row"><span class="ok">consent captured</span><span class="ov">yes · voice</span></div>
+                <div class="th-obs-row"><span class="ok">follow-up</span><span class="ov">schedule within 48h</span></div>
+              </div>
+
+              <div class="th-summary-label">Transcript (preview)</div>
+              <div class="th-transcript-empty">No transcript was found for this call — fetched from CI operator result only.</div>
+
+              <div class="th-trace-link">▸ OTel trace · t-9d4a··2f · scheduler → agent-connect → CR session</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- wallboard (with UI mock) -->
+  <section class="slide" data-menu="wallboard" data-menu-group="Services">
+    <div class="slide-inner wide">
+      <div class="eyebrow">Service · wallboard</div>
+      <div class="svc-head">
+        <h2>wallboard</h2>
+        <span class="svc-port">:5174 · Vite + React · operator view</span>
+      </div>
+      <p class="svc-tagline">
+        Read-only live view of system health. Polls scheduler and event-ingestor every 2 seconds.
+      </p>
+
+      <div class="svc-section-label">Sample UI</div>
+      <div class="ui-mock">
+        <div class="ui-mock-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="url">localhost:5174</div>
+        </div>
+        <div class="ui-mock-body">
+          <h3>wallboard</h3>
+          <div class="ui-sub">live · refreshed 2s ago</div>
+
+          <div class="wb-kpi-row">
+            <div class="wb-kpi">
+              <div class="k-label">In-flight</div>
+              <div class="k-val">17</div>
+              <div class="k-sub">4 voice · 13 sms</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Success · 1h</div>
+              <div class="k-val">94.2%</div>
+              <div class="k-sub">302 / 320</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Suppressed · 1h</div>
+              <div class="k-val">11</div>
+              <div class="k-sub dim">quiet_hours · dnc</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Failed · 24h</div>
+              <div class="k-val">6</div>
+              <div class="k-sub dim">no-answer · amd</div>
+            </div>
+          </div>
+
+          <div class="ui-section-title">Queue depth by scenario</div>
+          <div class="wb-queue-row"><span class="q-label">appointment-reminder</span><div class="q-bar"><div class="q-fill" style="width: 78%"></div></div><span class="q-count">47</span></div>
+          <div class="wb-queue-row"><span class="q-label">payment-reminder</span><div class="q-bar"><div class="q-fill" style="width: 52%"></div></div><span class="q-count">31</span></div>
+          <div class="wb-queue-row"><span class="q-label">delivery-eta</span><div class="q-bar"><div class="q-fill" style="width: 34%"></div></div><span class="q-count">20</span></div>
+          <div class="wb-queue-row"><span class="q-label">promo-reactivation</span><div class="q-bar"><div class="q-fill" style="width: 12%"></div></div><span class="q-count">7</span></div>
+
+          <div class="ui-section-title">Recent audit</div>
+          <table class="wb-audit">
+            <thead>
+              <tr><th>at</th><th>actor</th><th>action</th><th>subject</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>14:02:14</td><td>scheduler</td><td>job.completed</td><td>job-0001</td></tr>
+              <tr><td>14:02:12</td><td>scheduler</td><td>job.suppressed</td><td>job-0003</td></tr>
+              <tr><td>14:02:12</td><td>scheduler</td><td>job.accepted</td><td>job-0002</td></tr>
+              <tr><td>14:02:11</td><td>scheduler</td><td>job.accepted</td><td>job-0001</td></tr>
+              <tr><td>14:01:58</td><td>agent-connect</td><td>cr.session.ended</td><td>CA7f8e··a2</td></tr>
+              <tr><td>14:01:40</td><td>event-ingestor</td><td>ci.operator_result</td><td>GT91a··0c · sentiment: positive</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 05 — Architecture ===== -->
   <section class="slide" data-menu="Architecture" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">03</div>
+      <div class="eyebrow">05</div>
       <h2>Architecture</h2>
 
       <div class="diagram-panel">
@@ -406,8 +1218,12 @@
           <text class="a-m" x="1652" y="182">phone</text>
 
           <!-- Arrow 1a: Upstream → scheduler -->
-          <line class="ar-t" x1="170" y1="110" x2="354" y2="110" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="262" y="102" text-anchor="middle">POST /jobs</text>
+          <line class="ar-t" x1="170" y1="104" x2="354" y2="104" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="262" y="96" text-anchor="middle">POST /jobs</text>
+
+          <!-- Arrow 1c: scheduler → Upstream (upstream_callback_url) -->
+          <line class="ar-t-d" x1="360" y1="130" x2="176" y2="130" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="262" y="146" text-anchor="middle">lifecycle callback</text>
 
           <!-- Arrow 1b: test-harness → scheduler -->
           <line class="ar-t" x1="170" y1="210" x2="354" y2="210" marker-end="url(#arr-t)"/>
@@ -454,7 +1270,7 @@
 
       <div class="arch-recap">
         <ol>
-          <li><strong>Upstream</strong> (or <strong>test-harness</strong> during dev) posts a <code>Job</code> to <strong>scheduler</strong>.</li>
+          <li><strong>Upstream</strong> (or <strong>test-harness</strong> during dev) posts a <code>Job</code> to <strong>scheduler</strong>, optionally including an <code>upstream_callback_url</code>. <strong>scheduler</strong> POSTs lifecycle events (accepted / suppressed / per-JobRun transitions / terminal outcome) back to that URL as the Job progresses.</li>
           <li><strong>scheduler</strong> runs policy (quiet hours, consent, DNC, dedupe, concurrency), then calls <strong>agent-connect</strong> to fire outbound. The <code>statusCallback</code> URL on <code>Calls.create</code> / <code>Messages.create</code> points at scheduler's own endpoint.</li>
           <li><strong>agent-connect</strong> opens a <strong>ConversationRelay</strong> session (voice) or sends via Messages (SMS), hydrating with <strong>Conversation Memory</strong> and driven by the LLM.</li>
           <li><strong>Conversation Intelligence</strong> runs operators (summary, sentiment) over the transcript as it accumulates.</li>
@@ -466,10 +1282,10 @@
     </div>
   </section>
 
-  <!-- ===== 04 — Core concepts ===== -->
+  <!-- ===== 06 — Core concepts ===== -->
   <section class="slide" data-menu="Core concepts" data-menu-group="Overview">
     <div class="slide-inner">
-      <div class="eyebrow">04</div>
+      <div class="eyebrow">06</div>
       <h2>Core concepts</h2>
       <div class="concept-grid">
         <div class="concept-block">
@@ -496,10 +1312,10 @@
     </div>
   </section>
 
-  <!-- ===== 05 — Outbound sequence ===== -->
+  <!-- ===== 07 — Outbound sequence ===== -->
   <section class="slide" data-menu="Outbound call" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">05</div>
+      <div class="eyebrow">07</div>
       <h2>Outbound voice call — end to end</h2>
       <div class="diagram-panel" style="padding: 24px 32px;">
         <div class="diagram-label">POST /jobs → caller phone rings → JobRun completed</div>
@@ -556,10 +1372,10 @@ sequenceDiagram
     </div>
   </section>
 
-  <!-- ===== 06 — Inbound sequence ===== -->
+  <!-- ===== 08 — Inbound sequence ===== -->
   <section class="slide" data-menu="Inbound call" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">06</div>
+      <div class="eyebrow">08</div>
       <h2>Inbound call — caller-initiated</h2>
       <div class="diagram-panel" style="padding: 24px 32px;">
         <div class="diagram-label">Caller dials the Twilio number → agent-connect answers</div>
