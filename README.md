@@ -1,5 +1,3 @@
-# voice-blueprint
-
 A reference implementation showing how a customer-facing application can use the Twilio stack — **TAC (Twilio Agent Connect)**, **ConversationRelay**, **Conversation Orchestrator**, **Conversation Memory**, **Conversation Intelligence**, and **Event Streams** — to run inbound and outbound voice + SMS conversations driven by an LLM agent, with a scheduler that owns the business logic for when and how to reach out, a test harness for developers, and a wallboard for operators.
 
 Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed by `uv`.
@@ -8,9 +6,9 @@ Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed 
 
 ## What this blueprint shows
 
-1. **How to post work to a scheduler** rather than making Twilio calls directly from your app. Any upstream system (CRM, billing, portal) creates a `Job`; the scheduler decides when, how, and whether to execute it.
+1. **How to post work to a scheduler** Any upstream system (CRM, billing, portal) creates a `Job`; the scheduler decides when, how, and whether to execute it.
 2. **How the scheduler enforces business policy** — time windows, consent, do-not-contact, retries, channel fallback, dedupe, concurrency.
-3. **How TAC bridges your LLM agent to Twilio channels** — one application handles inbound webhooks and outbound conversations across voice (ConversationRelay) and SMS, with Conversation Memory wired in for identity resolution and persistent context.
+3. **How TAC bridges your LLM agent to Twilio channels** — TAC is Twilio's middleware that handles inbound webhooks and outbound conversations across voice (ConversationRelay) and SMS, with Conversation Memory wired in for identity resolution and persistent context.
 4. **How Twilio Event Streams feeds state back** — call status, message delivery, Conversation Intelligence operator results — through a single ingestor that advances `JobRun` state, writes audit, and updates the wallboard.
 5. **How to observe the system end-to-end** — OpenTelemetry traces across every service, an append-only audit log for business events, and a live wallboard for operators.
 
@@ -19,61 +17,60 @@ Built in Python with FastAPI, with two Vite + React frontends. Monorepo managed 
 ## System diagram
 
 ```
-                        ┌──────────────────────────────┐
-                        │  Upstream apps (CRM, portal) │
-                        └──────────────┬───────────────┘
-                                       │ POST /jobs
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              scheduler                                  │
-│  • Validates Job (Pydantic)                                             │
-│  • Runs policy: quiet hours, consent, DNC, dedupe, concurrency          │
-│  • Owns the queue + JobRun lifecycle                                    │
-│  • Owns audit.db (sqlite)                                               │
-│  • Calls agent-connect to initiate outbound                             │
-└──────────────┬──────────────────────────────────────────────────────────┘
-               │ POST /outbound                                 ▲
-               ▼                                                │ events
-┌─────────────────────────────────────┐          ┌──────────────┴─────────────┐
-│          agent-connect              │          │       event-ingestor       │
-│  (the TAC application)              │          │  POST /twilio/events       │
-│  • Inbound SMS webhook              │◀────────▶│  • Signature validation    │
-│  • ConversationRelay WebSocket      │  Twilio  │  • Dedupe on event id      │
-│  • Memory recall + Orchestrator     │          │  • Fan out to scheduler    │
-│  • Tools (@function_tool)           │          │  • Write audit             │
-│  • Outbound conversation creation   │          │                            │
-└──────────────┬──────────────────────┘          └────────────────┬───────────┘
-               │                                                  │
-               ▼                                                  │
-      ┌─────────────────┐                                         │
-      │     Twilio      │ ◀───────── Event Streams webhook ───────┘
-      │ ConversationRelay│
-      │ Orchestrator    │
-      │ Memory          │
-      │ Intelligence    │
-      └─────────────────┘
+   ┌──────────────────────┐                      ┌──────────────────┐
+   │ Upstream (CRM, etc.) │                      │   test-harness   │
+   └──────────┬───────────┘                      └──────────┬───────┘
+              │ POST /jobs                                  │ POST /jobs
+              │        ┌────────────────────────────────────┘
+              ▼        ▼
+   ┌──────────────────┐    POST /outbound   ┌──────────────────┐
+   │    scheduler     │ ──────────────────▶ │  agent-connect   │
+   │                  │                     │      (TAC)       │
+   └──────────▲───────┘                     └────────┬─────────┘
+              │                                      │
+              │ StatusCallback                       ▼
+              │ (per call/msg)             ┌──────────────────┐
+              └─────────────────────────── │      Twilio      │
+                                           │  CR / Orch /     │
+   ┌──────────────────┐                    │  Memory / Intel  │
+   │  event-ingestor  │ ◀── Event Streams ─│                  │
+   │     (sink)       │                    └────────┬─────────┘
+   └─────────┬────────┘                             │
+             │                                      │ inbound
+             │ events                               ▼ webhooks
+             │                             ┌──────────────────┐
+             │                             │  agent-connect   │
+             │                             └──────────────────┘
+             ▼
+   ┌─────────────────────────────────────────────────┐
+   │                   wallboard                     │ ◀── reads ── scheduler
+   └─────────────────────────────────────────────────┘
 
-      ┌─────────────────┐          ┌─────────────────┐
-      │  test-harness   │          │    wallboard    │
-      │  (Vite + React) │          │  (Vite + React) │
-      │  Upload jobs,   │          │  Live KPIs,     │
-      │  inspect per-   │          │  queue depth,   │
-      │  job debug      │          │  recent audit   │
-      └────────┬────────┘          └────────┬────────┘
-               │                            │
-               └────── reads/writes ────────┘
-                           │
-                           ▼
-                       scheduler
+   test-harness also reads scheduler (/jobs, /runs, /audit) and event-ingestor (per-job events)
 ```
+
+Three independent inbound surfaces from Twilio, each configured in the layer that owns the resource:
+
+- **StatusCallback → scheduler** — set per API call on `Calls.create` / `Messages.create`. Delivers lifecycle (`ringing`, `answered`, `completed`, `no-answer`, `delivered`, AMD) for calls/messages scheduler originated. Scheduler advances JobRun directly.
+- **Inbound webhooks → agent-connect** — configured on the Twilio phone number (console / Numbers API). For end-user-initiated calls and SMS.
+- **Event Streams → event-ingestor** — account-level subscription. Dumb sink: signature validation, dedupe, append. Captures Intelligence `OperatorResult`, errors, and anything not tied to a resource scheduler already knows about.
+
+### What each service does
+
+- **scheduler** — validates Jobs, runs policy (quiet hours, consent, DNC, dedupe, concurrency), owns the queue + JobRun lifecycle, owns `audit.db`, calls agent-connect to initiate outbound, receives per-call/message StatusCallbacks.
+- **agent-connect** — the TAC application. Inbound SMS and voice webhooks, ConversationRelay WebSocket, Memory recall + Orchestrator session, `@function_tool` definitions, outbound conversation creation.
+- **event-ingestor** — Event Streams sink. Validates Twilio signature, dedupes on event id, appends. No routing.
+- **Twilio** — ConversationRelay, Orchestrator, Memory, Intelligence. Posts StatusCallbacks to scheduler, inbound webhooks to agent-connect, Event Streams to event-ingestor.
+- **test-harness** — Vite + React. Upload jobs, inspect per-job debug (transcript, memory, intelligence, trace link).
+- **wallboard** — Vite + React. Live KPIs, queue depth, recent audit, recent Intelligence findings.
 
 ---
 
 ## Services
 
-### `apps/scheduler` — the brain
+### `apps/scheduler` 
 
-Owns Jobs, JobRuns, and audit.db. All business policy lives here.
+All business logic for deciding which calls to make lives here.
 
 **Responsibilities**
 - Accept `POST /jobs` from upstream apps
@@ -83,8 +80,8 @@ Owns Jobs, JobRuns, and audit.db. All business policy lives here.
   - **Do-not-contact** — suppression list check
   - **Dedupe** — don't double-fire the same `(scenario, to)` within a window
   - **Concurrency** — cap in-flight jobs per campaign
-- Fire jobs by calling `agent-connect` to initiate outbound (voice or SMS)
-- Advance `JobRun` state based on events from `event-ingestor`
+- Fire jobs by calling `agent-connect` to initiate outbound (voice or SMS). Register `statusCallback` on `Calls.create` / `Messages.create` pointing at the scheduler's own callback endpoint.
+- Receive Twilio per-call / per-message `StatusCallback` webhooks and advance `JobRun` state directly (no event-ingestor hop)
 - Apply retry/backoff policy
 - Apply channel fallback (voice no-answer → SMS)
 - Expose read endpoints for the wallboard and test-harness
@@ -93,11 +90,12 @@ Owns Jobs, JobRuns, and audit.db. All business policy lives here.
 ```
 scheduler/src/scheduler/
 ├── main.py              # FastAPI app
-├── http/                # routes: /jobs, /jobs/{id}, /runs, /audit
+├── http/                # routes: /jobs, /jobs/{id}, /runs, /audit, /twilio/status
 ├── jobs/                # queue + JobRun lifecycle
 ├── policy/              # time-window, consent, dedupe, suppression
 ├── fallback/            # channel fallback rules
-├── outbound/            # calls agent-connect
+├── outbound/            # calls agent-connect; sets statusCallback URL on Calls/Messages
+├── callbacks/           # Twilio StatusCallback handlers (signature validation, JobRun advance)
 └── infra/               # db, otel, config
 ```
 
@@ -123,19 +121,19 @@ agent_connect/src/agent_connect/
 └── infra/               # otel, config
 ```
 
-### `apps/event_ingestor` — the single webhook sink
+### `apps/event_ingestor` — the Event Streams sink
 
-One place for Twilio Event Streams to land. Validates, dedupes, fans out.
+A dumb sink for account-level Twilio Event Streams. No routing, no business logic — it validates, dedupes, and appends. Scheduler and wallboard read from the store on their own cadence.
 
 **Responsibilities**
 - `POST /twilio/events` — Twilio Event Streams webhook sink
 - Validate Twilio signature on every request
 - Dedupe on event id (sqlite `seen_events` table)
-- Route events:
-  - Call/message status, AMD result → scheduler (advance JobRun)
-  - Intelligence `OperatorResult` → scheduler (attach to JobRun) + audit
-  - Errors → audit + wallboard
-- Write every event to audit
+- Append every event to the event store (Intelligence `OperatorResult`, errors, anything account-wide)
+
+**What it does NOT do**
+- Does not route events to scheduler. Per-call / per-message lifecycle (status, AMD) goes directly to scheduler via Twilio `StatusCallback`, configured per API call in `apps/scheduler/outbound/`.
+- Does not classify event types. Consumers (scheduler, wallboard) decide which events are relevant to them when they read.
 
 **Folder layout**
 ```
@@ -143,8 +141,7 @@ event_ingestor/src/event_ingestor/
 ├── main.py              # FastAPI app
 ├── http/                # /twilio/events
 ├── validation/          # Twilio signature validation
-├── routing/             # event → consumer mapping
-├── sinks/               # scheduler client, audit writer
+├── store/               # append-only event writer + reader
 └── infra/
 ```
 
@@ -263,8 +260,9 @@ Trade-off accepted: higher latency and more coupling than a bus, but trivially u
 | Memory Store | `scripts/provision.py` | `agent-connect` env, `scheduler` env |
 | Orchestrator Configuration | `scripts/provision.py` | `agent-connect` env (passed in TwiML `conversationConfiguration`) |
 | Intelligence Configuration | `scripts/provision.py` | Linked on the Orchestrator Config |
-| Phone number | Manual (Twilio console) | `scheduler` env (default `from`) |
+| Phone number | Manual (Twilio console) | `scheduler` env (default `from`); inbound webhooks on the number point at `agent-connect` |
 | Event Streams sink | `scripts/provision.py` | Points at `event-ingestor` public URL |
+| Per-call / per-message StatusCallback | Set at API call time by `scheduler` | Scheduler's own `/twilio/status` endpoint |
 
 IDs are **env config**, not source — a fresh Twilio account produces a different set. `.env.example` enumerates them; `scripts/provision.py` creates the resources and writes IDs to `.env`.
 

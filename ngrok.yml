@@ -1,0 +1,10 @@
+version: "3"
+agent:
+  authtoken_from_env: true
+tunnels:
+  agent-connect:
+    addr: 3002
+    proto: http
+  event-ingestor:
+    addr: 3003
+    proto: http

@@ -1,0 +1,19 @@
+blueprint.example.com {
+    handle_path /scheduler/* {
+        reverse_proxy localhost:3001
+    }
+    handle_path /agent/* {
+        reverse_proxy localhost:3002
+    }
+    handle_path /events/* {
+        reverse_proxy localhost:3003
+    }
+    handle_path /harness/* {
+        root * /var/www/test_harness
+        file_server
+    }
+    handle /* {
+        root * /var/www/wallboard
+        file_server
+    }
+}

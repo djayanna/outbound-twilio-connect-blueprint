@@ -1,0 +1,33 @@
+{
+  "jobs": [
+    {
+      "id": "job-0001",
+      "direction": "outbound",
+      "channel": "sms",
+      "to": "+15551110001",
+      "scheduled_for": "now",
+      "scenario": "appointment-confirmation",
+      "context": { "appointment_time": "2026-10-05T15:00:00Z" }
+    },
+    {
+      "id": "job-0002",
+      "direction": "outbound",
+      "channel": "voice",
+      "to": "+15551110002",
+      "scheduled_for": "now",
+      "scenario": "payment-reminder",
+      "context": { "amount_due": "249.00", "due_date": "2026-10-10" },
+      "retry_policy": { "max_attempts": 2, "backoff_seconds": 300 }
+    },
+    {
+      "id": "job-0003",
+      "direction": "outbound",
+      "channel": "sms",
+      "to": "+15551110003",
+      "scheduled_for": "now",
+      "scenario": "promotion",
+      "context": {},
+      "consent": { "source": "web-signup", "captured_at": "2026-09-01T12:00:00Z" }
+    }
+  ]
+}
