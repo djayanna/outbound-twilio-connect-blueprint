@@ -608,11 +608,11 @@
       <h1>Outbound Twilio Connect Blueprint</h1>
       <p class="lede">
         A reference implementation showing how a customer-facing application wires the Twilio stack —
-        Agent Connect, ConversationRelay, Conversation Orchestrator, Memory, Intelligence, and Event Streams —
+        TAC, ConversationRelay, Conversation Orchestrator, Memory, Intelligence, and Event Streams —
         to run outbound voice + SMS conversations powered by an AI agent.
       </p>
       <p class="lede" style="margin-top: -24px;">
-        It sits between your system of record (EHR, OMS, CRM) or your business application and Twilio.
+        It sits between your business application and Twilio.
         Your systems decide <em>who</em> to reach, <em>why</em>, and under what rules — timezone, quiet
         hours, consent, retry budget, channel preference. This layer <em>enforces</em> those rules, runs
         the conversation across voice and SMS, and reports every outcome back so the record of truth
@@ -633,7 +633,7 @@
       <div class="eyebrow">01</div>
       <h2>Why you'd build this</h2>
       <p class="why-lede">
-        Most businesses have systems of record that know <em>when</em> a customer needs to be contacted —
+        Most businesses know <em>when</em> a customer needs to be contacted —
         the EHR knows tomorrow's appointments, the OMS knows which package is 20 minutes out, the growth
         database knows which users haven't opened the app in three weeks — but those systems weren't
         designed to run the actual conversation.
@@ -726,7 +726,7 @@
         </div>
         <div class="svc-item">
           <div class="svc-title">event-ingestor</div>
-          <div class="svc-desc">Single consumer for Twilio Event Streams. Translates call status, message delivery, and Conversation Intelligence operator results into state transitions on the in-flight outreach, writes audit, and updates the wallboard.</div>
+          <div class="svc-desc">Single consumer for events. Useful for auditing and wallboard.</div>
         </div>
         <div class="svc-item">
           <div class="svc-title">test-harness</div>
@@ -736,49 +736,20 @@
           <div class="svc-title">wallboard</div>
           <div class="svc-desc">React UI for operators; live view of in-flight outreach and recent outcomes.</div>
         </div>
-        <div class="svc-item">
+        <!-- <div class="svc-item">
           <div class="svc-title">observability</div>
           <div class="svc-desc">OpenTelemetry traces across every service and an append-only audit log for business events.</div>
-        </div>
+        </div> -->
       </div>
 
       <p class="why-lede" style="margin-top: 26px; margin-bottom: 0;">
         A <strong>Job</strong> is the unit of work your upstream system hands to the blueprint. It carries
         <em>who</em> to reach, <em>why</em>, and the rules under which the outreach is allowed to happen —
         timezone, quiet hours, consent state, retry budget, channel preference, callback URL. Each attempt
-        the blueprint makes to fulfill a Job is a <strong>JobRun</strong>; a Job may produce several JobRuns
+        to fulfill a Job is a <strong>JobRun</strong>; a Job may produce several JobRuns
         as it retries or falls back across channels.
+        <br/>OpenTelemetry traces across every service and an append-only audit log for business events.
       </p>
-    </div>
-  </section>
-
-  <!-- ===== 04 — Services ===== -->
-  <section class="slide" data-menu="Services" data-menu-group="Overview">
-    <div class="slide-inner">
-      <div class="eyebrow">04</div>
-      <h2>Services</h2>
-      <div class="svc-list">
-        <div class="svc-item">
-          <div class="svc-title">scheduler <span class="port">:3001 · FastAPI</span></div>
-          <div class="svc-desc">Owns Jobs, JobRuns, and <code>audit.db</code>. All business policy lives here. Fires outbound by calling agent-connect. Receives per-call / per-message <code>StatusCallback</code> directly from Twilio and advances JobRun state.</div>
-        </div>
-        <div class="svc-item">
-          <div class="svc-title">agent-connect <span class="port">:3002 · FastAPI · TAC</span></div>
-          <div class="svc-desc">The Twilio Agent Connect application. Inbound SMS + voice webhooks (configured on the Twilio number) + ConversationRelay WebSocket + Memory recall + <code>@function_tool</code> definitions + outbound conversation creation.</div>
-        </div>
-        <div class="svc-item">
-          <div class="svc-title">event-ingestor <span class="port">:3003 · FastAPI</span></div>
-          <div class="svc-desc">Dumb Event Streams sink. Validates Twilio signature, dedupes on event id (<code>seen_events</code> table), appends. No routing, no business logic.</div>
-        </div>
-        <div class="svc-item">
-          <div class="svc-title">test-harness <span class="port">:5173 · Vite + React</span></div>
-          <div class="svc-desc">Developer tool. Upload a JSON file of jobs, watch each one execute, inspect transcript, memory, Intelligence operator results, and the OTel trace link per job.</div>
-        </div>
-        <div class="svc-item">
-          <div class="svc-title">wallboard <span class="port">:5174 · Vite + React</span></div>
-          <div class="svc-desc">Operator view. Live queue depth, in-flight jobs, success/failure rates, recent audit, recent Intelligence findings. Polls every 2s.</div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -794,17 +765,19 @@
         <h2>scheduler</h2>
         <span class="svc-port">:3001 · FastAPI · Python 3.11</span>
       </div>
-      <p class="svc-tagline">
-        The brain. Owns Jobs, JobRuns, and <code>audit.db</code>. All business policy lives here —
-        upstream apps don't make scheduling decisions, this service does.
-      </p>
+      <!-- <p class="svc-tagline">
+        Owns Jobs. Each Job arrives from the upstream with its own rules — timezone, quiet hours, consent,
+        retry budget, channel preference — and the scheduler is the engine that enforces them and picks
+        the moment to fire.
+      </p> -->
 
       <div class="svc-section-label">Responsibilities</div>
       <ul class="svc-resp">
         <li><strong>Accept</strong> <code>POST /jobs</code> from upstream apps and the test-harness.</li>
-        <li><strong>Run policy</strong> before firing: TCPA quiet hours in the recipient's timezone, consent gate (no marketing SMS without a record), do-not-contact suppression, dedupe on <code>(scenario, to)</code>, concurrency caps per campaign.</li>
-        <li><strong>Fire outbound</strong> by calling agent-connect's <code>/outbound</code>, with <code>statusCallback</code> on <code>Calls.create</code> / <code>Messages.create</code> pointing at scheduler's own endpoint.</li>
-        <li><strong>Advance JobRun state</strong> on per-call / per-message <code>StatusCallback</code>, with no event-ingestor hop.</li>
+        <li><strong>Run policy</strong> before firing: quiet hours in the recipient's timezone, do-not-contact suppression, dedupe on <code>(scenario, to)</code>, concurrency caps per campaign.</li>
+        <li><strong>Fire outbound</strong> by calling TAC's implementations</li>
+         <li><strong>Callback</strong> pointing at scheduler's own endpoint.</li>
+        <li><strong>Advance JobRun state</strong> on per-call / per-message.</li>
         <li><strong>Retry + channel fallback</strong> (voice no-answer → SMS).</li>
         <li><strong>Report back</strong> to upstream via <code>upstream_callback_url</code> on each lifecycle transition.</li>
       </ul>
@@ -833,30 +806,16 @@
         <span class="svc-port">:3002 · FastAPI · TAC · Python 3.11</span>
       </div>
       <p class="svc-tagline">
-        The Twilio Agent Connect application. The LLM-powered conversation runtime that connects
-        your LLM to Twilio's channels — inbound and outbound, voice and SMS.
+        Twilio's conversation middleware that connects your LLM to it's channels.
       </p>
 
       <div class="svc-section-label">Responsibilities</div>
       <ul class="svc-resp">
-        <li><strong>Inbound SMS webhook</strong> via TAC's <code>SMSChannel</code>, configured on the Twilio number.</li>
-        <li><strong>Inbound + outbound voice</strong> via ConversationRelay (TAC's <code>VoiceChannel</code>) — WebSocket for the STT/TTS + LLM turn loop.</li>
         <li><strong>Memory retrieval</strong> before each response — identity resolution + Recall against Conversation Memory.</li>
         <li><strong>Orchestrator session management</strong> — Conversation + Communication state on the Twilio side.</li>
-        <li><strong>Tools</strong> exposed via <code>@function_tool</code> (lookup account, schedule callback, transfer, etc.) called by the LLM mid-conversation.</li>
-        <li><strong>Outbound conversation creation</strong> on behalf of the scheduler.</li>
+        <li><strong>Tools</strong>  (lookup account, schedule callback, transfer, etc.) called by the LLM mid-conversation.</li>
       </ul>
 
-      <div class="svc-section-label">Folder layout</div>
-      <div class="code-panel">
-        <div class="code-label">apps/agent_connect/src/agent_connect/</div>
-<pre><code>├── main.py              # TAC + VoiceChannel + SMSChannel wiring
-├── handlers/            # on_message_ready implementations
-├── tools/               # @function_tool definitions
-├── prompts/             # system prompts per scenario
-└── infra/               # otel, config</code></pre>
-      </div>
-    </div>
   </section>
 
   <!-- event-ingestor -->
@@ -868,35 +827,16 @@
         <span class="svc-port">:3003 · FastAPI · Python 3.11</span>
       </div>
       <p class="svc-tagline">
-        A dumb sink for account-level Twilio Event Streams and scheduler-emitted lifecycle events.
-        It validates, dedupes, and appends. No routing, no business logic.
+        A sink for all account-level Twilio Event Streams and scheduler-emitted lifecycle events.
       </p>
 
       <div class="svc-section-label">Responsibilities</div>
       <ul class="svc-resp">
-        <li><strong>POST /twilio/events</strong> — Twilio Event Streams webhook sink.</li>
+        <li><strong>POST /twilio/events</strong> — webhook url.</li>
         <li><strong>Validate Twilio signature</strong> on every request using <code>RequestValidator</code>.</li>
         <li><strong>Dedupe on event id</strong> via the <code>seen_events</code> sqlite table — Event Streams is at-least-once.</li>
-        <li><strong>Append every event</strong> to the event store (Intelligence <code>OperatorResult</code>, errors, account-wide events).</li>
-        <li><strong>Accept scheduler-emitted events</strong> so the wallboard has a single store to read from.</li>
       </ul>
 
-      <div class="svc-section-label">What it does NOT do</div>
-      <ul class="svc-resp">
-        <li><strong>Does not route events to scheduler.</strong> Per-call / per-message lifecycle goes directly to scheduler via Twilio <code>StatusCallback</code>.</li>
-        <li><strong>Does not classify event types.</strong> Consumers (wallboard, debuggers) decide which events are relevant when they read.</li>
-      </ul>
-
-      <div class="svc-section-label">Folder layout</div>
-      <div class="code-panel">
-        <div class="code-label">apps/event_ingestor/src/event_ingestor/</div>
-<pre><code>├── main.py              # FastAPI app
-├── http/                # /twilio/events
-├── validation/          # Twilio signature validation
-├── store/               # append-only event writer + reader
-└── infra/</code></pre>
-      </div>
-    </div>
   </section>
 
   <!-- test-harness (with UI mock) -->
@@ -908,9 +848,7 @@
         <span class="svc-port">:5173 · Vite + React · developer tool</span>
       </div>
       <p class="svc-tagline">
-        Place single or batch test calls against the current agent, keep a history of past runs, and
-        inspect what each conversation produced — transcript, Intelligence summary, Memory observations,
-        and the OTel trace link.
+        Place single or batch test calls against the current agent, keep a history of past runs, and inspect what each conversation produced.
       </p>
 
       <div class="svc-section-label">Sample UI</div>
@@ -954,7 +892,7 @@
             <div class="th-tile">
               <div class="k">Batch test</div>
               <h4>Call multiple numbers</h4>
-              <div class="th-help">One number per line (or comma-separated), up to 20 at a time. Customer names are looked up from the shared profile automatically.</div>
+              <div class="th-help">One number per line (or comma-separated), up to 20 at a time.</div>
               <div class="th-field">
                 <label>Phone numbers</label>
                 <textarea class="input" readonly>+44 7700 900 123
@@ -1044,8 +982,8 @@
               <div class="th-tabs">
                 <span class="tab active">Summary</span>
                 <span class="tab">Transcript</span>
-                <span class="tab">Memory</span>
-                <span class="tab">Intelligence</span>
+                <!-- <span class="tab">Memory</span> -->
+                <!-- <span class="tab">Intelligence</span> -->
                 <span class="tab">Profile</span>
               </div>
 
@@ -1067,10 +1005,10 @@
                 <div class="th-obs-row"><span class="ok">follow-up</span><span class="ov">schedule within 48h</span></div>
               </div>
 
-              <div class="th-summary-label">Transcript (preview)</div>
-              <div class="th-transcript-empty">No transcript was found for this call — fetched from CI operator result only.</div>
+              <!-- <div class="th-summary-label">Transcript (preview)</div>
+              <div class="th-transcript-empty">No transcript was found for this call — fetched from CI operator result only.</div> -->
 
-              <div class="th-trace-link">▸ OTel trace · t-9d4a··2f · scheduler → agent-connect → CR session</div>
+              <!-- <div class="th-trace-link">▸ OTel trace · t-9d4a··2f · scheduler → agent-connect → CR session</div> -->
             </div>
           </div>
 
@@ -1088,7 +1026,7 @@
         <span class="svc-port">:5174 · Vite + React · operator view</span>
       </div>
       <p class="svc-tagline">
-        Read-only live view of system health. Polls scheduler and event-ingestor every 2 seconds.
+        Polls scheduler and event-ingestor every 2 seconds.
       </p>
 
       <div class="svc-section-label">Sample UI</div>
@@ -1234,11 +1172,11 @@
   <!-- ===== 05 — Architecture ===== -->
   <section class="slide" data-menu="Architecture" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">05</div>
+      <div class="eyebrow">04</div>
       <h2>Architecture</h2>
 
       <div class="diagram-panel">
-        <div class="diagram-label">Services · Twilio products · caller</div>
+        <!-- <div class="diagram-label">Services · Twilio products · caller</div> -->
         <svg viewBox="0 0 1740 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
           <defs>
             <marker id="arr-t" viewBox="0 0 10 10" refX="9" refY="5"
@@ -1397,11 +1335,11 @@
           <line class="ar-v-d" x1="170" y1="375" x2="354" y2="375" marker-end="url(#arr-v)"/>
           <text class="a-tv" x="262" y="367" text-anchor="middle">reads</text>
         </svg>
-        <p class="diagram-caption">
+        <!-- <p class="diagram-caption">
           Three inbound surfaces from Twilio, each configured where the resource lives:
           per-call <strong>StatusCallback</strong> → scheduler, phone-number <strong>inbound webhooks</strong> → agent-connect,
           account-level <strong>Event Streams</strong> → event-ingestor.
-        </p>
+        </p> -->
       </div>
 
       <div class="arch-recap">
@@ -1421,7 +1359,7 @@
   <!-- ===== 06 — Outbound sequence ===== -->
   <section class="slide" data-menu="Outbound call" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">06</div>
+      <div class="eyebrow">05</div>
       <h2>Outbound voice call — end to end</h2>
       <div class="diagram-panel" style="padding: 24px 32px;">
         <div class="diagram-label">POST /jobs → caller phone rings → JobRun completed</div>
@@ -1431,49 +1369,56 @@ sequenceDiagram
   actor UP as Upstream app
   participant S as scheduler
   participant AC as agent-connect
-  participant TW as Twilio
+  participant TW as Twilio Voice
   participant CR as ConversationRelay WS
+  participant MEM as Conversation Memory
+  participant CI as Conversation Intelligence
+  participant EI as event-ingestor
   actor C as Caller
 
   UP->>S: POST /jobs { to, scenario, scheduled_for }
   activate S
   Note over S: policy checks<br/>quiet hours · consent · DNC<br/>dedupe · concurrency
 
-  alt policy accepted
-    S->>AC: POST /outbound { job }
-    AC->>TW: Calls.create<br/>url=/voice/inbound<br/>statusCallback=/twilio/status
-    TW-->>AC: CallSid
-    TW->>C: phone rings
-    C-->>TW: answers
+  S->>AC: POST /outbound { job }
+  AC->>TW: Calls.create<br/>url=/voice/inbound<br/>statusCallback=/twilio/status
+  TW-->>AC: CallSid
+  TW->>C: phone rings
+  C-->>TW: answers
 
-    TW->>AC: GET /voice/inbound (TwiML request)
-    AC-->>TW: TwiML &lt;Connect&gt;&lt;ConversationRelay url=wss://.../voice/ws&gt;
-    TW->>CR: open WebSocket
-    activate CR
-    CR->>CR: Memory recall · identity resolution
+  TW->>AC: GET /voice/inbound (TwiML request)
+  AC-->>TW: TwiML &lt;Connect&gt;&lt;ConversationRelay url=wss://.../voice/ws&gt;
+  TW->>CR: open WebSocket
+  activate CR
 
-    loop each conversational turn
-      C->>TW: utterance (speech)
-      TW->>CR: {type:"prompt", voicePrompt}
-      CR->>CR: LLM reply · @function_tool
-      CR-->>TW: {type:"text", token} (streamed)
-      TW->>C: TTS audio
-    end
+  AC->>MEM: Recall profile by caller phone
+  MEM-->>AC: observations · traits · prior summaries
+  Note over CR: identity resolved<br/>before first turn
 
-    C-->>TW: hang up
-    deactivate CR
-    TW->>S: POST /twilio/status<br/>CallStatus=completed
-    S->>S: advance JobRun · audit.record(completed)
-    Note over TW,S: Twilio also emits Event Streams events<br/>→ event-ingestor (dedupe + append)
-  else policy suppressed
-    S->>S: audit.record(suppressed, reason)
+  loop each conversational turn
+    C->>TW: utterance (speech)
+    TW->>CR: {type:"prompt", voicePrompt}
+    CR->>CR: LLM reply · @function_tool
+    CR-->>TW: {type:"text", token} (streamed)
+    TW->>C: TTS audio
   end
+
+  C-->>TW: hang up
+  deactivate CR
+
+  AC->>MEM: write observations · update profile
+  CI->>CI: finalize OperatorResult on CONVERSATION_END
+
+  TW->>S: POST /twilio/status<br/>CallStatus=completed
+  S->>UP: POST upstream_callback_url<br/>{ job.id, status, outcome }
   deactivate S
         </pre>
-        <p class="diagram-caption">
-          The scheduler owns the lifecycle: it posts outbound, receives the per-call <code>StatusCallback</code>, and
-          advances the JobRun. agent-connect owns the conversation runtime via ConversationRelay.
-        </p>
+        <!-- <p class="diagram-caption">
+          The scheduler owns the lifecycle. agent-connect hands the media leg to ConversationRelay, which
+          hydrates against <strong>Conversation Memory</strong> before the first turn and emits each
+          Communication to <strong>Conversation Intelligence</strong>; results and lifecycle events fan
+          out through Event Streams to event-ingestor.
+        </p> -->
       </div>
     </div>
   </section>
