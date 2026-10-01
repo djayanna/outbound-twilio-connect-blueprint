@@ -144,22 +144,6 @@ Polls scheduler and event-ingestor every 2 seconds.
 
 ---
 
-## Shared code (`shared/`)
-
-A Python package `voice-blueprint-shared` that every backend app depends on as a `uv` workspace member.
-
-```
-shared/src/voice_blueprint_shared/
-├── job.py       # Job + JobRun Pydantic models
-├── audit.py     # audit.record(db, event) writer
-└── otel.py      # initOtel(service_name) — one call per app
-```
-
-**Why shared, not duplicated:** three apps need the exact same `Job` shape, the same OTel init, and the same audit event schema. Duplication drifts.
-
-**Why not a published package:** workspace symlink is enough; nothing is versioned or shipped independently.
-
-
 ### REST + HTTPS between services
 
 No message bus. Every service exposes a plain JSON HTTP API. In dev, HTTP on localhost; in prod, HTTPS via whatever ingress the deploy target provides.
