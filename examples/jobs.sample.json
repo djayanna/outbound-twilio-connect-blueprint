@@ -7,7 +7,8 @@
       "to": "+15551110001",
       "scheduled_for": "now",
       "scenario": "appointment-confirmation",
-      "context": { "appointment_time": "2026-10-05T15:00:00Z" }
+      "context": { "appointment_time": "2026-10-05T15:00:00Z" },
+      "upstream_callback_url": "https://crm.example.com/twilio/jobs/job-0001/events"
     },
     {
       "id": "job-0002",
@@ -17,7 +18,8 @@
       "scheduled_for": "now",
       "scenario": "payment-reminder",
       "context": { "amount_due": "249.00", "due_date": "2026-10-10" },
-      "retry_policy": { "max_attempts": 2, "backoff_seconds": 300 }
+      "retry_policy": { "max_attempts": 2, "backoff_seconds": 300 },
+      "upstream_callback_url": "https://billing.example.com/webhooks/twilio-jobs"
     },
     {
       "id": "job-0003",
@@ -27,7 +29,8 @@
       "scheduled_for": "now",
       "scenario": "promotion",
       "context": {},
-      "consent": { "source": "web-signup", "captured_at": "2026-09-01T12:00:00Z" }
+      "consent": { "source": "web-signup", "captured_at": "2026-09-01T12:00:00Z" },
+      "upstream_callback_url": "https://marketing.example.com/campaigns/callbacks"
     }
   ]
 }

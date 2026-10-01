@@ -208,6 +208,7 @@ class Job(BaseModel):
     consent: Consent | None = None
     constraints: Constraints | None = None
     retry_policy: RetryPolicy | None = None
+    upstream_callback_url: str | None = None   # scheduler POSTs job lifecycle events here
 
 class JobRun(BaseModel):
     job_id: str
@@ -223,6 +224,51 @@ class JobRun(BaseModel):
 ```
 
 **Note:** `conversation_id` lives on `JobRun`, not `Job`. The Conversation is Twilio-side state created when the Job fires; it's not part of the business intent.
+
+**`upstream_callback_url`** is an optional URL the scheduler POSTs to as the Job progresses — accepted/suppressed, each JobRun transition, terminal outcome. The upstream app that created the Job uses it to track status without polling. Shape of the POST body mirrors the audit event (`actor`, `action`, `subject`, `data`, `timestamp`).
+
+### Example `jobs.json`
+
+What upstream apps (or the test-harness) POST to `scheduler /jobs`. Full file at `examples/jobs/jobs.sample.json`.
+
+```json
+{
+  "jobs": [
+    {
+      "id": "job-0001",
+      "direction": "outbound",
+      "channel": "sms",
+      "to": "+15551110001",
+      "scheduled_for": "now",
+      "scenario": "appointment-confirmation",
+      "context": { "appointment_time": "2026-10-05T15:00:00Z" },
+      "upstream_callback_url": "https://crm.example.com/twilio/jobs/job-0001/events"
+    },
+    {
+      "id": "job-0002",
+      "direction": "outbound",
+      "channel": "voice",
+      "to": "+15551110002",
+      "scheduled_for": "now",
+      "scenario": "payment-reminder",
+      "context": { "amount_due": "249.00", "due_date": "2026-10-10" },
+      "retry_policy": { "max_attempts": 2, "backoff_seconds": 300 },
+      "upstream_callback_url": "https://billing.example.com/webhooks/twilio-jobs"
+    },
+    {
+      "id": "job-0003",
+      "direction": "outbound",
+      "channel": "sms",
+      "to": "+15551110003",
+      "scheduled_for": "now",
+      "scenario": "promotion",
+      "context": {},
+      "consent": { "source": "web-signup", "captured_at": "2026-09-01T12:00:00Z" },
+      "upstream_callback_url": "https://marketing.example.com/campaigns/callbacks"
+    }
+  ]
+}
+```
 
 ### Vocabulary — avoiding collisions with Twilio
 

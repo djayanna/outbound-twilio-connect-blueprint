@@ -38,6 +38,7 @@ class Job(BaseModel):
     consent: Consent | None = None
     constraints: Constraints | None = None
     retry_policy: RetryPolicy | None = None
+    upstream_callback_url: str | None = None
     status: JobStatus = "accepted"
 
     model_config = {"populate_by_name": True}

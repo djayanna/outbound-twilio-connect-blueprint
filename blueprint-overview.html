@@ -291,7 +291,7 @@
 
       <div class="diagram-panel">
         <div class="diagram-label">Services · Twilio products · caller</div>
-        <svg viewBox="0 0 1560 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
+        <svg viewBox="0 0 1680 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
           <defs>
             <marker id="arr-t" viewBox="0 0 10 10" refX="9" refY="5"
                     markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -319,6 +319,7 @@
             .box-ac   { fill: rgba(78,112,137,0.08); stroke: #4E7089; stroke-width: 1.4; }
             .box-ei   { fill: rgba(122,106,158,0.08); stroke: #7A6A9E; stroke-width: 1.4; }
             .box-up   { fill: rgba(168,122,33,0.08); stroke: #A87A21; stroke-width: 1.4; }
+            .box-ui   { fill: rgba(168,122,33,0.06); stroke: #A87A21; stroke-width: 1.2; stroke-dasharray: 4 3; }
             .box-tw   { fill: rgba(78,112,137,0.06); stroke: #4E7089; stroke-width: 1.2; }
             .box-mem  { fill: rgba(78,112,137,0.06); stroke: #4E7089; stroke-width: 1.2; }
             .box-int  { fill: rgba(122,106,158,0.06); stroke: #7A6A9E; stroke-width: 1.2; }
@@ -328,100 +329,121 @@
             .ar-b { stroke: #4E7089; stroke-width: 1.6; fill: none; }
             .ar-v { stroke: #7A6A9E; stroke-width: 1.6; fill: none; }
             .ar-t-d { stroke: #B5502E; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+            .ar-v-d { stroke: #7A6A9E; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
           </style>
 
           <!-- Twilio outer wrapper -->
-          <rect class="outer-tw" x="780" y="30" width="610" height="400" rx="8"/>
-          <text class="a-s" x="792" y="22">Twilio platform</text>
+          <rect class="outer-tw" x="950" y="30" width="590" height="260" rx="8"/>
+          <text class="a-s" x="962" y="22">Twilio platform</text>
 
-          <!-- Upstream app -->
-          <rect class="box-up" x="20" y="100" width="120" height="65" rx="6"/>
-          <text class="a-h" x="28" y="124">Upstream</text>
-          <text class="a-m" x="28" y="146">CRM, billing</text>
+          <!-- Upstream app (top-left) -->
+          <rect class="box-up" x="20" y="80" width="150" height="60" rx="6"/>
+          <text class="a-h" x="30" y="104">Upstream</text>
+          <text class="a-m" x="30" y="124">CRM · billing</text>
+
+          <!-- Test harness (below upstream) -->
+          <rect class="box-ui" x="20" y="180" width="150" height="60" rx="6"/>
+          <text class="a-h" x="30" y="204">test-harness</text>
+          <text class="a-m" x="30" y="224">dev tool · :5173</text>
+
+          <!-- Wallboard (below test-harness) -->
+          <rect class="box-ui" x="20" y="340" width="150" height="70" rx="6"/>
+          <text class="a-h" x="30" y="364">wallboard</text>
+          <text class="a-m" x="30" y="384">operator · :5174</text>
+          <text class="a-m" x="30" y="400">polls every 2s</text>
 
           <!-- scheduler -->
-          <rect class="box-sch" x="230" y="60" width="200" height="180" rx="6"/>
-          <text class="a-h" x="240" y="86">scheduler</text>
-          <text class="a-tt" x="240" y="108">policy · queue · audit</text>
-          <text class="a-m" x="240" y="138">· time windows</text>
-          <text class="a-m" x="240" y="156">· consent + DNC</text>
-          <text class="a-m" x="240" y="174">· dedupe + concurrency</text>
-          <text class="a-m" x="240" y="192">· retry + fallback</text>
-          <text class="a-m" x="240" y="210">· audit.db (sqlite)</text>
+          <rect class="box-sch" x="360" y="60" width="220" height="200" rx="6"/>
+          <text class="a-h" x="372" y="86">scheduler</text>
+          <text class="a-tt" x="372" y="108">policy · queue · audit</text>
+          <text class="a-m" x="372" y="138">· time windows</text>
+          <text class="a-m" x="372" y="156">· consent + DNC</text>
+          <text class="a-m" x="372" y="174">· dedupe + concurrency</text>
+          <text class="a-m" x="372" y="192">· retry + fallback</text>
+          <text class="a-m" x="372" y="210">· audit.db (sqlite)</text>
+          <text class="a-m" x="372" y="238">:3001</text>
+
+          <!-- event-ingestor (under scheduler) -->
+          <rect class="box-ei" x="360" y="330" width="220" height="90" rx="6"/>
+          <text class="a-h" x="372" y="356">event-ingestor</text>
+          <text class="a-tv" x="372" y="378">event store · sink</text>
+          <text class="a-m" x="372" y="398">validate · dedupe · append</text>
 
           <!-- agent-connect -->
-          <rect class="box-ac" x="510" y="60" width="220" height="180" rx="6"/>
-          <text class="a-h" x="520" y="86">agent-connect</text>
-          <text class="a-tb" x="520" y="108">TAC + ConversationRelay</text>
-          <text class="a-m" x="520" y="138">· inbound voice/SMS webhooks</text>
-          <text class="a-m" x="520" y="156">· ConversationRelay WS</text>
-          <text class="a-m" x="520" y="174">· Memory recall</text>
-          <text class="a-m" x="520" y="192">· @function_tool</text>
-          <text class="a-m" x="520" y="210">· outbound creation</text>
-
-          <!-- event-ingestor -->
-          <rect class="box-ei" x="510" y="330" width="220" height="80" rx="6"/>
-          <text class="a-h" x="520" y="356">event-ingestor</text>
-          <text class="a-tv" x="520" y="378">Event Streams sink</text>
-          <text class="a-m" x="520" y="398">validate · dedupe · append</text>
+          <rect class="box-ac" x="660" y="60" width="240" height="200" rx="6"/>
+          <text class="a-h" x="672" y="86">agent-connect</text>
+          <text class="a-tb" x="672" y="108">TAC + ConversationRelay</text>
+          <text class="a-m" x="672" y="138">· inbound voice/SMS hooks</text>
+          <text class="a-m" x="672" y="156">· ConversationRelay WS</text>
+          <text class="a-m" x="672" y="174">· Memory recall</text>
+          <text class="a-m" x="672" y="192">· @function_tool</text>
+          <text class="a-m" x="672" y="210">· outbound creation</text>
+          <text class="a-m" x="672" y="238">:3002</text>
 
           <!-- ConversationRelay -->
-          <rect class="box-tw" x="800" y="65" width="280" height="65" rx="6"/>
-          <text class="a-h" x="810" y="90">ConversationRelay</text>
-          <text class="a-m" x="810" y="112">voice: STT/TTS + LLM</text>
+          <rect class="box-tw" x="970" y="65" width="270" height="65" rx="6"/>
+          <text class="a-h" x="982" y="90">ConversationRelay</text>
+          <text class="a-m" x="982" y="112">voice: STT/TTS + LLM</text>
 
           <!-- Conversation Memory -->
-          <rect class="box-mem" x="1100" y="65" width="280" height="65" rx="6"/>
-          <text class="a-h" x="1110" y="90">Conversation Memory</text>
-          <text class="a-m" x="1110" y="112">profile + history</text>
+          <rect class="box-mem" x="1260" y="65" width="260" height="65" rx="6"/>
+          <text class="a-h" x="1272" y="90">Conversation Memory</text>
+          <text class="a-m" x="1272" y="112">profile + history</text>
 
           <!-- Conversation Orchestrator -->
-          <rect class="box-tw" x="800" y="150" width="280" height="65" rx="6"/>
-          <text class="a-h" x="810" y="175">Conversation Orchestrator</text>
-          <text class="a-m" x="810" y="197">captures + links traffic</text>
+          <rect class="box-tw" x="970" y="150" width="270" height="65" rx="6"/>
+          <text class="a-h" x="982" y="175">Conversation Orchestrator</text>
+          <text class="a-m" x="982" y="197">captures + links traffic</text>
 
           <!-- Conversation Intelligence -->
-          <rect class="box-int" x="1100" y="150" width="280" height="65" rx="6"/>
-          <text class="a-h" x="1110" y="175">Conversation Intelligence</text>
-          <text class="a-m" x="1110" y="197">transcript operators</text>
-
-          <!-- Event Streams -->
-          <rect class="box-tw" x="800" y="345" width="580" height="55" rx="6"/>
-          <text class="a-h" x="810" y="370">Event Streams</text>
-          <text class="a-m" x="810" y="390">account-level webhook sink</text>
+          <rect class="box-int" x="1260" y="150" width="260" height="65" rx="6"/>
+          <text class="a-h" x="1272" y="175">Conversation Intelligence</text>
+          <text class="a-m" x="1272" y="197">transcript operators</text>
 
           <!-- Caller -->
-          <rect class="box-call" x="1450" y="135" width="90" height="65" rx="6"/>
-          <text class="a-h" x="1460" y="160">Caller</text>
-          <text class="a-m" x="1460" y="182">phone</text>
+          <rect class="box-call" x="1580" y="135" width="90" height="65" rx="6"/>
+          <text class="a-h" x="1592" y="160">Caller</text>
+          <text class="a-m" x="1592" y="182">phone</text>
 
-          <!-- Arrow 1: Upstream → scheduler -->
-          <line class="ar-t" x1="140" y1="132" x2="224" y2="132" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="182" y="124" text-anchor="middle">POST /jobs</text>
+          <!-- Arrow 1a: Upstream → scheduler -->
+          <line class="ar-t" x1="170" y1="110" x2="354" y2="110" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="262" y="102" text-anchor="middle">POST /jobs</text>
+
+          <!-- Arrow 1b: test-harness → scheduler -->
+          <line class="ar-t" x1="170" y1="210" x2="354" y2="210" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="262" y="202" text-anchor="middle">POST /jobs</text>
 
           <!-- Arrow 2: scheduler → agent-connect -->
-          <line class="ar-t" x1="430" y1="100" x2="504" y2="100" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="467" y="92" text-anchor="middle">outbound</text>
+          <line class="ar-t" x1="580" y1="100" x2="654" y2="100" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="617" y="92" text-anchor="middle">outbound</text>
 
-          <!-- Arrow 3: agent-connect → ConversationRelay (voice) -->
-          <line class="ar-b" x1="730" y1="97" x2="794" y2="97" marker-end="url(#arr-b)"/>
-          <text class="a-tb" x="762" y="89" text-anchor="middle">connect</text>
+          <!-- Arrow 3: agent-connect → ConversationRelay -->
+          <line class="ar-b" x1="900" y1="97" x2="964" y2="97" marker-end="url(#arr-b)"/>
+          <text class="a-tb" x="932" y="89" text-anchor="middle">connect</text>
 
           <!-- Arrow 4: Twilio platform → Caller (voice) -->
-          <line class="ar-t" x1="1390" y1="170" x2="1444" y2="170" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="1417" y="162" text-anchor="middle">voice</text>
+          <line class="ar-t" x1="1540" y1="170" x2="1574" y2="170" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1557" y="162" text-anchor="middle">voice</text>
 
-          <!-- Arrow 5: Twilio → scheduler StatusCallback (dashed) -->
-          <path class="ar-t-d" d="M 800 400 Q 500 450 430 220" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="560" y="438" text-anchor="middle">StatusCallback</text>
+          <!-- Arrow 5: Caller → Twilio (inbound, dashed) -->
+          <line class="ar-t-d" x1="1580" y1="190" x2="1546" y2="190" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1563" y="212" text-anchor="middle">inbound</text>
 
-          <!-- Arrow 6: Event Streams → event-ingestor -->
-          <line class="ar-v" x1="800" y1="372" x2="736" y2="372" marker-end="url(#arr-v)"/>
-          <text class="a-tv" x="768" y="364" text-anchor="middle">events</text>
+          <!-- Arrow 6: Twilio → scheduler StatusCallback (dashed curve) -->
+          <path class="ar-t-d" d="M 1120 290 Q 820 360 586 190" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="860" y="378" text-anchor="middle">StatusCallback</text>
 
-          <!-- Arrow 7: Caller → Twilio (inbound) -->
-          <line class="ar-t-d" x1="1450" y1="192" x2="1396" y2="192" marker-end="url(#arr-t)"/>
-          <text class="a-tt" x="1423" y="214" text-anchor="middle">inbound</text>
+          <!-- Arrow 7: Twilio → event-ingestor (Event Streams) -->
+          <path class="ar-v" d="M 1240 290 Q 900 440 586 380" marker-end="url(#arr-v)"/>
+          <text class="a-tv" x="1020" y="450" text-anchor="middle">Event Streams</text>
+
+          <!-- Arrow 8: scheduler → event-ingestor (dumps JobRun events) -->
+          <line class="ar-v" x1="470" y1="260" x2="470" y2="324" marker-end="url(#arr-v)"/>
+          <text class="a-tv" x="482" y="298">dumps</text>
+
+          <!-- Arrow 9: wallboard → event-ingestor (reads, dashed) -->
+          <line class="ar-v-d" x1="170" y1="375" x2="354" y2="375" marker-end="url(#arr-v)"/>
+          <text class="a-tv" x="262" y="367" text-anchor="middle">reads</text>
         </svg>
         <p class="diagram-caption">
           Three inbound surfaces from Twilio, each configured where the resource lives:
@@ -432,12 +454,13 @@
 
       <div class="arch-recap">
         <ol>
-          <li><strong>Upstream</strong> posts a <code>Job</code> to <strong>scheduler</strong>.</li>
-          <li><strong>scheduler</strong> runs policy (quiet hours, consent, DNC, dedupe, concurrency), then calls <strong>agent-connect</strong> to fire outbound. The <code>statusCallback</code> URL on <code>Calls.create</code> / <code>Messages.create</code> points at the scheduler's own endpoint.</li>
+          <li><strong>Upstream</strong> (or <strong>test-harness</strong> during dev) posts a <code>Job</code> to <strong>scheduler</strong>.</li>
+          <li><strong>scheduler</strong> runs policy (quiet hours, consent, DNC, dedupe, concurrency), then calls <strong>agent-connect</strong> to fire outbound. The <code>statusCallback</code> URL on <code>Calls.create</code> / <code>Messages.create</code> points at scheduler's own endpoint.</li>
           <li><strong>agent-connect</strong> opens a <strong>ConversationRelay</strong> session (voice) or sends via Messages (SMS), hydrating with <strong>Conversation Memory</strong> and driven by the LLM.</li>
           <li><strong>Conversation Intelligence</strong> runs operators (summary, sentiment) over the transcript as it accumulates.</li>
-          <li><strong>Event Streams</strong> emits account-level events to <strong>event-ingestor</strong>, which validates, dedupes, and appends.</li>
+          <li><strong>Event Streams</strong> emits account-level events to <strong>event-ingestor</strong>, which validates, dedupes, and appends. <strong>scheduler</strong> also dumps its own JobRun lifecycle events into event-ingestor so there is a single event store.</li>
           <li>Per-call lifecycle events (<code>ringing</code>, <code>answered</code>, <code>completed</code>, AMD) flow back to <strong>scheduler</strong> directly via <strong>StatusCallback</strong>, advancing the JobRun.</li>
+          <li><strong>wallboard</strong> reads from <strong>event-ingestor</strong> on a 2s poll for the live operator view.</li>
         </ol>
       </div>
     </div>
@@ -520,11 +543,10 @@ sequenceDiagram
     TW->>S: POST /twilio/status<br/>CallStatus=completed
     S->>S: advance JobRun · audit.record(completed)
     Note over TW,S: Twilio also emits Event Streams events<br/>→ event-ingestor (dedupe + append)
-    deactivate S
   else policy suppressed
     S->>S: audit.record(suppressed, reason)
-    deactivate S
   end
+  deactivate S
         </pre>
         <p class="diagram-caption">
           The scheduler owns the lifecycle: it posts outbound, receives the per-call <code>StatusCallback</code>, and
