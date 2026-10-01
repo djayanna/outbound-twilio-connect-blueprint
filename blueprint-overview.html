@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Twilio Connect Blueprint — Overview</title>
+<title>Outbound Twilio Connect Blueprint — Overview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -427,7 +427,61 @@
   }
 
   /* Wallboard mock specifics */
-  .wb-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 6px; }
+  .wb-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px; border-bottom: 1px dotted var(--line); margin-bottom: 14px;
+  }
+  .wb-head .brand {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .wb-head .brand .mono-chip {
+    width: 32px; height: 32px; border-radius: 6px; background: var(--violet);
+    color: #FBF8EE; font-family: var(--font-m); font-weight: 600; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; letter-spacing: 0.03em;
+  }
+  .wb-head .brand h3 {
+    font-family: var(--font-h); font-size: 20px; font-weight: 600; margin: 0;
+  }
+  .wb-live-indicator {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-m); font-size: 11.5px; color: var(--text-dim);
+  }
+  .wb-live-indicator .pulse {
+    width: 9px; height: 9px; border-radius: 50%; background: #4A9A5E;
+    box-shadow: 0 0 0 0 rgba(74,154,94,0.5); animation: wb-pulse 2.4s infinite;
+  }
+  @keyframes wb-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(74,154,94,0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(74,154,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(74,154,94,0); }
+  }
+
+  .wb-section-label {
+    font-family: var(--font-m); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text); font-weight: 600;
+    margin: 18px 0 8px;
+  }
+  .wb-sub-label {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-faint); margin: 0 0 6px 2px;
+  }
+
+  .wb-group {
+    background: #FBF8EE; border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px 10px; margin-bottom: 12px;
+  }
+  .wb-group .wb-group-label {
+    font-family: var(--font-m); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px;
+  }
+
+  .wb-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 6px; }
+  .wb-kpi-row.live-row { grid-template-columns: repeat(5, 1fr); }
+  .wb-kpi-row.dispatcher-row { grid-template-columns: repeat(2, 1fr); }
+  .wb-kpi-row.tac-row { grid-template-columns: repeat(5, 1fr); }
+  .wb-intraday {
+    display: grid; grid-template-columns: 0.42fr 1fr; gap: 10px;
+  }
   .wb-kpi {
     background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
     padding: 10px 12px;
@@ -543,7 +597,7 @@
 <nav class="side-menu open" id="side-menu"></nav>
 
 <div class="toolbar">
-  <div class="brand">Twilio Connect Blueprint — Overview</div>
+  <div class="brand">Outbound Twilio Connect Blueprint — Overview</div>
 </div>
 
 <div class="viewport" id="viewport">
@@ -551,20 +605,24 @@
   <!-- ===== Cover ===== -->
   <section class="slide active" data-menu="Cover" data-menu-group="Overview">
     <div class="slide-inner">
-      <h1>Twilio Connect Blueprint</h1>
+      <h1>Outbound Twilio Connect Blueprint</h1>
       <p class="lede">
         A reference implementation showing how a customer-facing application wires the Twilio stack —
         Agent Connect, ConversationRelay, Conversation Orchestrator, Memory, Intelligence, and Event Streams —
-        to run outbound voice + SMS conversations driven by an LLM agent. Upstream apps post <code>Job</code>s
-        that describe <em>who</em> to reach and <em>why</em>; the scheduler enforces <em>how</em> and <em>when</em>
-        — quiet hours, consent, retries, channel fallback — and reports progress back via
-        <code>upstream_callback_url</code>.
+        to run outbound voice + SMS conversations powered by an AI agent.
+      </p>
+      <p class="lede" style="margin-top: -24px;">
+        It sits between your system of record (EHR, OMS, CRM) or your business application and Twilio.
+        Your systems decide <em>who</em> to reach, <em>why</em>, and under what rules — timezone, quiet
+        hours, consent, retry budget, channel preference. This layer <em>enforces</em> those rules, runs
+        the conversation across voice and SMS, and reports every outcome back so the record of truth
+        stays in your systems.
       </p>
       <div class="meta-row">
         <div class="meta-item"><div class="k">Stack</div><div class="v">Python 3.11 · FastAPI · uv</div></div>
         <div class="meta-item"><div class="k">Frontends</div><div class="v">Vite + React (×2)</div></div>
         <div class="meta-item"><div class="k">Services</div><div class="v">3 backends · 2 UIs</div></div>
-        <div class="meta-item"><div class="k">Transport</div><div class="v">REST + HTTPS · no bus</div></div>
+        <div class="meta-item"><div class="k">Transport</div><div class="v">REST + HTTPS</div></div>
       </div>
     </div>
   </section>
@@ -577,46 +635,33 @@
       <p class="why-lede">
         Most businesses have systems of record that know <em>when</em> a customer needs to be contacted —
         the EHR knows tomorrow's appointments, the OMS knows which package is 20 minutes out, the growth
-        database knows which users haven't opened the app in three weeks. Those systems weren't designed
-        to run the actual conversation. A cron inside the CRM firing SMS is enough until the first time
-        it texts someone at 2 a.m., skips a time zone, double-dials on a retry, or has no record of
-        whether the customer actually heard back.
+        database knows which users haven't opened the app in three weeks — but those systems weren't
+        designed to run the actual conversation.
+      </p>
+      <p class="why-lede">
+        A cron job that fires SMS from inside the CRM is enough until the first time it texts someone
+        at 2 a.m., skips a time zone, double-dials on a retry, or has no record of whether the customer
+        actually heard back.
       </p>
 
+      <div class="svc-section-label" style="margin-top: 10px;">Use cases this blueprint is shaped around</div>
       <div class="why-use-cases">
         <div class="why-use-case">
           <div class="why-uc-title">Healthcare appointment confirmations and reminders</div>
-          <div class="why-uc-desc">
-            The EHR files the appointment; this layer calls or texts the patient the day before,
-            confirms or reschedules in natural language, and writes the outcome back. Consent is implied
-            by the care relationship, but TCPA quiet hours and HIPAA posture still apply.
-          </div>
         </div>
         <div class="why-use-case">
           <div class="why-uc-title">Last-mile delivery communications</div>
-          <div class="why-uc-desc">
-            The OMS hands off a shipment; this layer sends an ETA SMS, handles "I'm not home" replies,
-            offers to reschedule, and escalates to voice if a signature is required. Timezone of the
-            recipient, not the warehouse, drives timing.
-          </div>
         </div>
         <div class="why-use-case">
-          <div class="why-uc-title">Re-engaging quiet users</div>
-          <div class="why-uc-desc">
-            Growth tooling flags customers who've gone silent — abandoned carts, lapsed subscriptions,
-            trial users who never activated. This layer runs a short, personalized conversation (voice
-            for high-value accounts, SMS otherwise), captures the reason for the drop-off into Memory,
-            and feeds the result back to the upstream system.
-          </div>
+          <div class="why-uc-title">Re-engaging quiet users <span style="font-weight: 400; color: var(--text-dim);">— abandoned carts, lapsed subscriptions, dormant trials</span></div>
+        </div>
+        <div class="why-use-case">
+          <div class="why-uc-title">Payment reminders and collections outreach</div>
+        </div>
+        <div class="why-use-case">
+          <div class="why-uc-title">Service outage or incident notifications <span style="font-weight: 400; color: var(--text-dim);">— with two-way acknowledgement</span></div>
         </div>
       </div>
-
-      <p class="why-lede" style="margin-bottom: 10px;">
-        The common shape: an upstream system knows <em>that</em> a conversation should happen, but
-        running it well requires policy (TCPA, consent, DNC), reliability (retries, channel fallback,
-        dedupe), and conversational intelligence (identity resolution, memory of prior interactions,
-        operator-driven follow-ups). This blueprint is where those three concerns live.
-      </p>
     </div>
   </section>
 
@@ -624,7 +669,7 @@
   <section class="slide" data-menu="Mental model" data-menu-group="Overview">
     <div class="slide-inner">
       <div class="eyebrow">02</div>
-      <h2>Mental model: a policy-aware broker for conversations</h2>
+      <h2>A broker for conversations</h2>
       <p class="mental-model-caption">
         If you've worked with a message queue, the shape will be familiar.
       </p>
@@ -660,41 +705,50 @@
         </tbody>
       </table>
       <p class="why-lede" style="margin-top: 20px;">
-        The analogy is a mental model, not an infrastructure claim — the scheduler is in-process sqlite,
-        not Kafka. The twist versus a generic queue is that the delivery policy is domain-aware (TCPA,
-        timezone-local quiet hours, consent records) and the "work" being delivered is a stateful,
-        LLM-driven conversation rather than a one-shot message.
+        The scheduler is in-process sqlite, for now.
       </p>
     </div>
   </section>
 
-  <!-- ===== 03 — What this is ===== -->
-  <section class="slide" data-menu="What this is" data-menu-group="Overview">
+  <!-- ===== 03 — What's in the box ===== -->
+  <section class="slide" data-menu="What's in the box" data-menu-group="Overview">
     <div class="slide-inner">
       <div class="eyebrow">03</div>
-      <h2>What this blueprint shows</h2>
+      <h2>What's in the box</h2>
       <div class="svc-list">
         <div class="svc-item">
-          <div class="svc-title">How to post work to a scheduler</div>
-          <div class="svc-desc">Any upstream system (CRM, billing, portal) creates a <code>Job</code>; the scheduler decides when, how, and whether to execute it.</div>
+          <div class="svc-title">scheduler</div>
+          <div class="svc-desc">Accepts outreach requests from your upstream systems, enforces the rules each request carries (time window, consent, retry budget, channel fallback, dedupe, concurrency), dispatches to agent-connect when the moment is right, and POSTs outcomes back to the upstream.</div>
         </div>
         <div class="svc-item">
-          <div class="svc-title">How the scheduler enforces business policy</div>
-          <div class="svc-desc">Time windows (TCPA quiet hours in recipient's TZ), consent, do-not-contact suppression, retries, channel fallback, dedupe, concurrency caps.</div>
+          <div class="svc-title">agent-connect</div>
+          <div class="svc-desc">TAC-based service that connects your LLM to Twilio. Handles inbound Twilio webhooks and runs outbound voice (via ConversationRelay) and SMS conversations, with Conversation Memory wired in for identity resolution and persistent context.</div>
         </div>
         <div class="svc-item">
-          <div class="svc-title">How Twilio Agent Connect bridges an LLM to Twilio channels</div>
-          <div class="svc-desc">TAC handles inbound webhooks and outbound conversations across voice (ConversationRelay) and SMS, with Memory wired in for identity resolution and persistent context.</div>
+          <div class="svc-title">event-ingestor</div>
+          <div class="svc-desc">Single consumer for Twilio Event Streams. Translates call status, message delivery, and Conversation Intelligence operator results into state transitions on the in-flight outreach, writes audit, and updates the wallboard.</div>
         </div>
         <div class="svc-item">
-          <div class="svc-title">How Event Streams feeds state back</div>
-          <div class="svc-desc">Account-level events — Intelligence operator results, errors, resource lifecycle — land in a single ingestor that validates, dedupes, and appends. Scheduler and wallboard read from the store on their own cadence.</div>
+          <div class="svc-title">test-harness</div>
+          <div class="svc-desc">React UI for submitting outreach requests and watching them flow end-to-end.</div>
         </div>
         <div class="svc-item">
-          <div class="svc-title">How to observe the system end-to-end</div>
-          <div class="svc-desc">OpenTelemetry traces across every service, an append-only audit log for business events, and a live wallboard for operators.</div>
+          <div class="svc-title">wallboard</div>
+          <div class="svc-desc">React UI for operators; live view of in-flight outreach and recent outcomes.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">observability</div>
+          <div class="svc-desc">OpenTelemetry traces across every service and an append-only audit log for business events.</div>
         </div>
       </div>
+
+      <p class="why-lede" style="margin-top: 26px; margin-bottom: 0;">
+        A <strong>Job</strong> is the unit of work your upstream system hands to the blueprint. It carries
+        <em>who</em> to reach, <em>why</em>, and the rules under which the outreach is allowed to happen —
+        timezone, quiet hours, consent state, retry budget, channel preference, callback URL. Each attempt
+        the blueprint makes to fulfill a Job is a <strong>JobRun</strong>; a Job may produce several JobRuns
+        as it retries or falls back across channels.
+      </p>
     </div>
   </section>
 
@@ -1044,48 +1098,130 @@
           <div class="url">localhost:5174</div>
         </div>
         <div class="ui-mock-body">
-          <h3>wallboard</h3>
-          <div class="ui-sub">live · refreshed 2s ago</div>
-
-          <div class="wb-kpi-row">
-            <div class="wb-kpi">
-              <div class="k-label">In-flight</div>
-              <div class="k-val">17</div>
-              <div class="k-sub">4 voice · 13 sms</div>
+          <div class="wb-head">
+            <div class="brand">
+              <div class="mono-chip">VB</div>
+              <h3>Agent Wallboard</h3>
             </div>
-            <div class="wb-kpi">
-              <div class="k-label">Success · 1h</div>
-              <div class="k-val">94.2%</div>
-              <div class="k-sub">302 / 320</div>
-            </div>
-            <div class="wb-kpi">
-              <div class="k-label">Suppressed · 1h</div>
-              <div class="k-val">11</div>
-              <div class="k-sub dim">quiet_hours · dnc</div>
-            </div>
-            <div class="wb-kpi">
-              <div class="k-label">Failed · 24h</div>
-              <div class="k-val">6</div>
-              <div class="k-sub dim">no-answer · amd</div>
+            <div class="wb-live-indicator">
+              <span class="pulse"></span>
+              Live data connected · refreshed 2s ago
             </div>
           </div>
 
-          <div class="ui-section-title">Queue depth by scenario</div>
+          <!-- Live Stats row -->
+          <div class="wb-section-label">Live stats</div>
+          <div class="wb-kpi-row live-row">
+            <div class="wb-kpi">
+              <div class="k-label">Live calls</div>
+              <div class="k-val">2</div>
+              <div class="k-sub dim">of 10 lines</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Active dials</div>
+              <div class="k-val">0</div>
+              <div class="k-sub dim">ringing out</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">In conversation</div>
+              <div class="k-val">0</div>
+              <div class="k-sub dim">talking to the AI</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Queuing for human</div>
+              <div class="k-val">2</div>
+              <div class="k-sub">waiting</div>
+            </div>
+            <div class="wb-kpi">
+              <div class="k-label">Drop rate</div>
+              <div class="k-val">0.0%</div>
+              <div class="k-sub dim">0 of 2</div>
+            </div>
+          </div>
+
+          <!-- Intra-day stats -->
+          <div class="wb-section-label">▼ Intra-day stats</div>
+          <div class="wb-intraday">
+            <!-- Dispatcher (scheduler) -->
+            <div class="wb-group">
+              <div class="wb-group-label">Dispatcher · scheduler</div>
+              <div class="wb-kpi-row dispatcher-row">
+                <div class="wb-kpi">
+                  <div class="k-label">Jobs accepted</div>
+                  <div class="k-val">8</div>
+                  <div class="k-sub dim">today</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">Jobs dispatched</div>
+                  <div class="k-val">4</div>
+                  <div class="k-sub dim">sent to TAC</div>
+                </div>
+              </div>
+              <div class="wb-sub-label" style="margin-top: 10px;">By channel</div>
+              <div class="wb-kpi-row dispatcher-row">
+                <div class="wb-kpi">
+                  <div class="k-label">Voice jobs</div>
+                  <div class="k-val">5</div>
+                  <div class="k-sub dim">accepted</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">SMS jobs</div>
+                  <div class="k-val">3</div>
+                  <div class="k-sub dim">accepted</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAC (agent-connect) -->
+            <div class="wb-group">
+              <div class="wb-group-label">TAC · agent-connect</div>
+              <div class="wb-kpi-row tac-row">
+                <div class="wb-kpi">
+                  <div class="k-label">Calls made</div>
+                  <div class="k-val">4</div>
+                  <div class="k-sub dim">outbound calls created</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">No answer</div>
+                  <div class="k-val">1</div>
+                  <div class="k-sub dim">calls not picked up</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">Answering machines</div>
+                  <div class="k-val">1</div>
+                  <div class="k-sub dim">detected by AMD</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">Queued for human</div>
+                  <div class="k-val">2</div>
+                  <div class="k-sub dim">handoffs queued</div>
+                </div>
+                <div class="wb-kpi">
+                  <div class="k-label">Dispatch → queue</div>
+                  <div class="k-val">50.0%</div>
+                  <div class="k-sub">2 of 4</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Queue depth -->
+          <div class="wb-section-label">Queue depth by scenario</div>
           <div class="wb-queue-row"><span class="q-label">appointment-reminder</span><div class="q-bar"><div class="q-fill" style="width: 78%"></div></div><span class="q-count">47</span></div>
           <div class="wb-queue-row"><span class="q-label">payment-reminder</span><div class="q-bar"><div class="q-fill" style="width: 52%"></div></div><span class="q-count">31</span></div>
           <div class="wb-queue-row"><span class="q-label">delivery-eta</span><div class="q-bar"><div class="q-fill" style="width: 34%"></div></div><span class="q-count">20</span></div>
           <div class="wb-queue-row"><span class="q-label">promo-reactivation</span><div class="q-bar"><div class="q-fill" style="width: 12%"></div></div><span class="q-count">7</span></div>
 
-          <div class="ui-section-title">Recent audit</div>
+          <!-- Recent audit -->
+          <div class="wb-section-label">Recent audit</div>
           <table class="wb-audit">
             <thead>
               <tr><th>at</th><th>actor</th><th>action</th><th>subject</th></tr>
             </thead>
             <tbody>
-              <tr><td>14:02:14</td><td>scheduler</td><td>job.completed</td><td>job-0001</td></tr>
-              <tr><td>14:02:12</td><td>scheduler</td><td>job.suppressed</td><td>job-0003</td></tr>
-              <tr><td>14:02:12</td><td>scheduler</td><td>job.accepted</td><td>job-0002</td></tr>
-              <tr><td>14:02:11</td><td>scheduler</td><td>job.accepted</td><td>job-0001</td></tr>
+              <tr><td>14:02:14</td><td>scheduler</td><td>call.completed</td><td>call-0001</td></tr>
+              <tr><td>14:02:12</td><td>scheduler</td><td>sms.accepted</td><td>sms-0002 · sms</td></tr>
+              <tr><td>14:02:11</td><td>scheduler</td><td>call.accepted</td><td>call-0001 · voice</td></tr>
               <tr><td>14:01:58</td><td>agent-connect</td><td>cr.session.ended</td><td>CA7f8e··a2</td></tr>
               <tr><td>14:01:40</td><td>event-ingestor</td><td>ci.operator_result</td><td>GT91a··0c · sentiment: positive</td></tr>
             </tbody>
@@ -1282,40 +1418,10 @@
     </div>
   </section>
 
-  <!-- ===== 06 — Core concepts ===== -->
-  <section class="slide" data-menu="Core concepts" data-menu-group="Overview">
-    <div class="slide-inner">
-      <div class="eyebrow">06</div>
-      <h2>Core concepts</h2>
-      <div class="concept-grid">
-        <div class="concept-block">
-          <h3>Job vs JobRun</h3>
-          <p><strong>Job</strong> is the business intent — "contact this customer at this time for this reason." Immutable once accepted.</p>
-          <p><strong>JobRun</strong> is one execution attempt. Retries create new JobRuns against the same Job. <code>conversation_id</code> lives on <strong>JobRun</strong>, not Job — the Conversation is Twilio-side state created when the Job fires.</p>
-        </div>
-        <div class="concept-block">
-          <h3>Three inbound surfaces</h3>
-          <p><strong>StatusCallback</strong> — per-call lifecycle for calls scheduler originated. Points at scheduler.</p>
-          <p><strong>Phone-number webhooks</strong> — end-user-initiated calls and SMS. Point at agent-connect.</p>
-          <p><strong>Event Streams</strong> — account-wide events, Intelligence operator results, errors. Point at event-ingestor.</p>
-        </div>
-        <div class="concept-block">
-          <h3>Vocabulary</h3>
-          <p>The blueprint uses its own terms (<strong>Job</strong>, <strong>JobRun</strong>, <strong>Scenario</strong>) and never reuses Twilio's <strong>Conversation</strong> or <strong>Communication</strong> as business-side identifiers — those stay as Twilio-side ids inside <code>JobRun</code>.</p>
-        </div>
-        <div class="concept-block">
-          <h3>Tracing vs auditing</h3>
-          <p><strong>Tracing</strong> (OpenTelemetry) answers "where did time go, where did it fail?" — short retention, high volume.</p>
-          <p><strong>Auditing</strong> (append-only <code>audit.db</code> owned by scheduler) answers "who did what, when?" — long retention, explicit <code>audit.record(...)</code> calls.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== 07 — Outbound sequence ===== -->
+  <!-- ===== 06 — Outbound sequence ===== -->
   <section class="slide" data-menu="Outbound call" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">07</div>
+      <div class="eyebrow">06</div>
       <h2>Outbound voice call — end to end</h2>
       <div class="diagram-panel" style="padding: 24px 32px;">
         <div class="diagram-label">POST /jobs → caller phone rings → JobRun completed</div>
@@ -1367,58 +1473,6 @@ sequenceDiagram
         <p class="diagram-caption">
           The scheduler owns the lifecycle: it posts outbound, receives the per-call <code>StatusCallback</code>, and
           advances the JobRun. agent-connect owns the conversation runtime via ConversationRelay.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== 08 — Inbound sequence ===== -->
-  <section class="slide" data-menu="Inbound call" data-menu-group="Diagrams">
-    <div class="slide-inner wide">
-      <div class="eyebrow">08</div>
-      <h2>Inbound call — caller-initiated</h2>
-      <div class="diagram-panel" style="padding: 24px 32px;">
-        <div class="diagram-label">Caller dials the Twilio number → agent-connect answers</div>
-        <pre class="mermaid" style="background: transparent; margin: 0; text-align: center;">
-sequenceDiagram
-  autonumber
-  actor C as Caller
-  participant TW as Twilio number
-  participant AC as agent-connect
-  participant CR as ConversationRelay WS
-  participant MEM as Conversation Memory
-  participant EI as event-ingestor
-  participant S as scheduler
-
-  C->>TW: dials the Twilio number
-  TW->>AC: POST /voice/inbound<br/>(configured on the number)
-  AC-->>TW: TwiML &lt;Connect&gt;&lt;ConversationRelay&gt;
-  TW->>CR: open WebSocket
-  activate CR
-  CR->>MEM: Recall profile by caller phone
-  MEM-->>CR: observations · traits · history
-  Note over CR: identity resolved before first reply
-
-  loop conversation
-    C->>CR: utterance
-    CR->>CR: LLM + tools
-    CR-->>C: reply via TTS
-  end
-
-  alt agent schedules callback
-    CR->>S: POST /jobs { direction: "inbound-followup" }
-    Note over S: becomes an outbound job later
-  end
-
-  C-->>CR: hang up
-  deactivate CR
-  Note over TW,EI: Event Streams emits<br/>Intelligence OperatorResult, Communication events<br/>→ event-ingestor
-  TW->>EI: POST /twilio/events
-  EI->>EI: validate signature · dedupe · append
-        </pre>
-        <p class="diagram-caption">
-          Scheduler stays out of the inbound path unless the agent chooses to schedule a callback via a tool call,
-          which turns the follow-up into a normal outbound Job on the same policy pipeline.
         </p>
       </div>
     </div>

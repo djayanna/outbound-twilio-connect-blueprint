@@ -42,15 +42,19 @@ The scheduler is in-process sqlite, for now.
 
 ---
 
-## What this blueprint shows
+## What's in the box
 
-1. **How to post work to a scheduler** Any upstream system (CRM, billing, portal) creates a `Job`; the scheduler decides when, how, and whether to execute it.
-2. **How the scheduler enforces business policy** — time windows, consent, do-not-contact, retries, channel fallback, dedupe, concurrency.
-3. **How TAC bridges your LLM agent to Twilio channels** — TAC is Twilio's middleware that handles inbound webhooks and outbound conversations across voice (ConversationRelay) and SMS, with Conversation Memory wired in for identity resolution and persistent context.
-4. **How Twilio Event Streams feeds state back** — call status, message delivery, Conversation Intelligence operator results — through a single ingestor that advances `JobRun` state, writes audit, and updates the wallboard.
-5. **How to observe the system end-to-end** — OpenTelemetry traces across every service, an append-only audit log for business events, and a live wallboard for operators.
+- **scheduler** — Accepts outreach requests from your upstream systems, enforces the rules each request carries (time window, consent, retry budget, channel fallback, dedupe, concurrency), dispatches to agent-connect when the moment is right, and POSTs outcomes back to the upstream.
+- **agent-connect** — TAC-based service that connects your LLM to Twilio. Handles inbound Twilio webhooks and runs outbound voice (via ConversationRelay) and SMS conversations, with Conversation Memory wired in for identity resolution and persistent context.
+- **event-ingestor** — Single consumer for Twilio Event Streams. Translates call status, message delivery, and Conversation Intelligence operator results into state transitions on the in-flight outreach, writes audit, and updates the wallboard.
+- **test-harness** — React UI for submitting outreach requests and watching them flow end-to-end.
+- **wallboard** — React UI for operators; live view of in-flight outreach and recent outcomes.
+- **observability** — OpenTelemetry traces across every service and an append-only audit log for business events.
 
----
+
+A **Job** is the unit of work your upstream system hands to the blueprint. It carries *who* to reach, *why*, and the rules under which the outreach is allowed to happen — timezone, quiet hours, consent state, retry budget, channel preference, callback URL. Each attempt the blueprint makes to fulfill a Job is a **JobRun**; a Job may produce several JobRuns as it retries or falls back across channels.
+
+
 
 ## System diagram
 
@@ -84,26 +88,19 @@ The scheduler is in-process sqlite, for now.
    │                   wallboard                     │ 
    └─────────────────────────────────────────────────┘
 
-   test-harness also reads scheduler (/jobs, /runs, /audit) and event-ingestor (per-job events)
 ```
+
+
+
+
+
+
 
 Three independent inbound surfaces from Twilio, each configured in the layer that owns the resource:
 
 - **StatusCallback → scheduler** — set per API call on `Calls.create` / `Messages.create`. Delivers lifecycle (`ringing`, `answered`, `completed`, `no-answer`, `delivered`, AMD) for calls/messages scheduler originated. Scheduler advances JobRun directly.
 - **Inbound webhooks → agent-connect** — configured on the Twilio phone number (console / Numbers API). For end-user-initiated calls and SMS.
 - **Event Streams → event-ingestor** — account-level subscription. Dumb sink: signature validation, dedupe, append. Captures Intelligence `OperatorResult`, errors, and anything not tied to a resource scheduler already knows about.
-
-### What each service does
-
-- **scheduler** — validates Jobs, runs policy (quiet hours, consent, DNC, dedupe, concurrency), owns the queue + JobRun lifecycle, owns `audit.db`, calls agent-connect to initiate outbound, receives per-call/message StatusCallbacks.
-- **agent-connect** — the TAC application. Inbound SMS and voice webhooks, ConversationRelay WebSocket, Memory recall + Orchestrator session, `@function_tool` definitions, outbound conversation creation.
-- **event-ingestor** — Event Streams sink. Validates Twilio signature, dedupes on event id, appends. No routing.
-- **Twilio** — ConversationRelay, Orchestrator, Memory, Intelligence. Posts StatusCallbacks to scheduler, inbound webhooks to agent-connect, Event Streams to event-ingestor.
-- **test-harness** — Vite + React. Upload jobs, inspect per-job debug (transcript, memory, intelligence, trace link).
-- **wallboard** — Vite + React. Live KPIs, queue depth, recent audit, recent Intelligence findings.
-
----
-
 ## Services
 
 ### `apps/scheduler` 
