@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twilio Connect Blueprint — Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5EFE3;
+    --bg-alt: #EFE7D6;
+    --line: rgba(43,36,30,0.16);
+    --terracotta: #B5502E;  --terracotta-soft: rgba(181,80,46,0.12);
+    --dusty-blue: #4E7089;  --dusty-blue-soft: rgba(78,112,137,0.12);
+    --ochre: #A87A21;       --ochre-soft: rgba(168,122,33,0.13);
+    --violet: #7A6A9E;      --violet-soft: rgba(122,106,158,0.12);
+    --text: #2B241E;
+    --text-dim: #6C5F51;
+    --text-faint: #A89A87;
+    --font-h: 'Fraunces', Georgia, serif;
+    --font-b: 'IBM Plex Sans', sans-serif;
+    --font-m: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--font-b);
+    line-height: 1.6; -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+
+  .toolbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 30px 0 84px; z-index: 20;
+    background: linear-gradient(to bottom, var(--bg) 55%, transparent);
+    transition: left 0.3s ease;
+  }
+  .toolbar .brand { font-family: var(--font-m); font-size: 12.5px; color: var(--text-faint); }
+
+  .side-menu-toggle {
+    position: fixed; top: 11px; left: 20px; z-index: 31;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--bg-alt); color: var(--text);
+    font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s ease;
+  }
+  .side-menu-toggle:hover { border-color: var(--terracotta); }
+
+  .side-menu-backdrop {
+    position: fixed; inset: 0; background: rgba(43,36,30,0.18);
+    z-index: 24; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+  }
+  .side-menu-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .side-menu {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 250px;
+    background: var(--bg-alt); border-right: 1px dotted var(--line);
+    z-index: 25; padding: 78px 16px 20px; overflow-y: auto;
+    transform: translateX(-100%); transition: transform 0.3s ease;
+  }
+  .side-menu.open { transform: translateX(0); }
+  .side-menu-group {
+    font-family: var(--font-m); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint);
+    padding: 14px 10px 6px 10px; border-top: 1px dotted var(--line); margin-top: 6px;
+  }
+  .side-menu-group:first-of-type { border-top: none; margin-top: 0; padding-top: 4px; }
+  .side-menu-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    font-family: var(--font-b); font-size: 14px; color: var(--text-dim);
+    padding: 10px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 2px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .side-menu-item:hover { background: var(--bg); color: var(--text); }
+  .side-menu-item.active { color: var(--terracotta); font-weight: 600; background: var(--terracotta-soft); }
+
+  .viewport { position: relative; height: 100vh; width: 100%; transition: margin-left 0.3s ease, width 0.3s ease; }
+  .slide {
+    position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center;
+    padding: 104px 24px 96px; opacity: 0; transform: translateY(14px); pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.34s ease; overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .slide-inner { max-width: 760px; width: 100%; margin: auto; }
+  .slide-inner.wide { max-width: 1180px; }
+
+  .eyebrow {
+    display: inline-block; font-family: var(--font-m); font-size: 12.5px; font-weight: 500;
+    color: var(--terracotta); border: 1.5px solid var(--terracotta);
+    padding: 4px 12px; border-radius: 4px; transform: rotate(-1.5deg);
+    margin-bottom: 22px;
+  }
+
+  h1 { font-family: var(--font-h); font-size: 48px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 18px; }
+  .lede { color: var(--text-dim); font-size: 17px; max-width: 620px; margin-bottom: 44px; }
+  .meta-row { display: flex; gap: 40px; flex-wrap: wrap; padding-top: 28px; border-top: 1px dotted var(--line); }
+  .meta-item .k { font-family: var(--font-m); font-size: 11px; letter-spacing: 0.03em; color: var(--text-faint); margin-bottom: 6px; text-transform: uppercase; }
+  .meta-item .v { font-size: 15px; font-weight: 600; }
+
+  h2 { font-family: var(--font-h); font-size: 34px; font-weight: 600; margin-bottom: 30px; }
+
+  .p-desc a, .lede a, .arch-recap a, .concept-block a {
+    color: var(--terracotta); text-decoration: none;
+    border-bottom: 1px solid rgba(181,80,46,0.35);
+  }
+  .p-desc a:hover, .lede a:hover, .arch-recap a:hover { border-bottom-color: var(--terracotta); }
+
+  /* Service list — reused from prereq styling */
+  .svc-list { display: flex; flex-direction: column; }
+  .svc-item { padding: 17px 0 17px 22px; border-bottom: 1px dotted var(--line); position: relative; }
+  .svc-item:last-child { border-bottom: none; }
+  .svc-item::before { content: "✦"; position: absolute; left: 0; top: 17px; color: var(--terracotta); font-size: 11px; }
+  .svc-title { font-weight: 600; font-size: 15.5px; margin-bottom: 4px; }
+  .svc-title .port { font-family: var(--font-m); font-size: 12px; color: var(--text-faint); margin-left: 10px; font-weight: 400; }
+  .svc-desc { color: var(--text-dim); font-size: 14.5px; }
+
+  /* Concept blocks (two-column style) */
+  .concept-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 48px; }
+  .concept-block h3 {
+    font-family: var(--font-h); font-size: 20px; font-weight: 600; margin-bottom: 8px;
+  }
+  .concept-block p { color: var(--text-dim); font-size: 14.5px; margin-bottom: 10px; }
+  .concept-block code {
+    font-family: var(--font-m); font-size: 12.5px; color: var(--terracotta);
+    background: var(--terracotta-soft); padding: 1px 6px; border-radius: 3px;
+  }
+  @media (max-width: 760px) {
+    .concept-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Diagram panel */
+  .diagram-panel {
+    background: var(--bg-alt); border: 1px dotted var(--line); border-radius: 6px;
+    padding: 18px 20px 22px; margin-bottom: 18px;
+  }
+  .diagram-label {
+    font-family: var(--font-m); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px;
+  }
+  .diagram-panel svg { display: block; width: 100%; height: auto; }
+  .diagram-caption {
+    color: var(--text-dim); font-size: 13.5px; font-family: var(--font-h);
+    font-style: italic; max-width: 820px; margin-top: 4px;
+  }
+  .arch-recap { color: var(--text-dim); font-size: 14.5px; max-width: 900px; margin-top: 16px; }
+  .arch-recap ol { padding-left: 22px; }
+  .arch-recap ol li { margin-bottom: 6px; padding-left: 4px; }
+  .arch-recap ol li strong { color: var(--text); font-weight: 600; }
+
+  /* Deck nav */
+  .deck-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 78px;
+    display: flex; align-items: center; justify-content: center; gap: 22px; z-index: 20;
+    background: linear-gradient(to top, var(--bg) 55%, transparent);
+    transition: left 0.3s ease;
+  }
+  .nav-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--bg-alt); color: var(--text);
+    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .nav-btn:hover { border-color: var(--terracotta); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); border: none; cursor: pointer; padding: 0; }
+  .dot.active { background: var(--terracotta); }
+  .counter { font-family: var(--font-m); font-size: 12px; color: var(--text-faint); min-width: 46px; text-align: center; }
+
+  @media (min-width: 900px) {
+    .side-menu-backdrop { display: none; }
+    body.menu-open .toolbar { left: 250px; }
+    body.menu-open .viewport { margin-left: 250px; width: calc(100% - 250px); }
+    body.menu-open .deck-nav { left: 250px; }
+  }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 32px; }
+    h2 { font-size: 26px; }
+    .slide { padding: 88px 18px 88px; }
+  }
+
+  @media print {
+    body { overflow: visible; height: auto; }
+    .toolbar, .deck-nav, .side-menu, .side-menu-toggle, .side-menu-backdrop { display: none; }
+    .viewport { height: auto; margin-left: 0 !important; width: 100% !important; }
+    .slide {
+      position: static; opacity: 1 !important; transform: none !important;
+      pointer-events: auto; height: auto; padding: 36px 24px;
+      page-break-after: always;
+    }
+  }
+</style>
+</head>
+<body class="menu-open">
+
+<button class="side-menu-toggle" id="menu-toggle" aria-label="Toggle slide menu">☰</button>
+<div class="side-menu-backdrop" id="menu-backdrop"></div>
+<nav class="side-menu open" id="side-menu"></nav>
+
+<div class="toolbar">
+  <div class="brand">Twilio Connect Blueprint — Overview</div>
+</div>
+
+<div class="viewport" id="viewport">
+
+  <!-- ===== Cover ===== -->
+  <section class="slide active" data-menu="Cover" data-menu-group="Overview">
+    <div class="slide-inner">
+      <h1>Twilio Connect Blueprint</h1>
+      <p class="lede">
+        A reference implementation showing how a customer-facing application wires the Twilio stack —
+        Agent Connect, ConversationRelay, Conversation Orchestrator, Memory, Intelligence, and Event Streams —
+        to run inbound and outbound voice + SMS driven by an LLM agent, with a scheduler owning the business logic.
+      </p>
+      <div class="meta-row">
+        <div class="meta-item"><div class="k">Stack</div><div class="v">Python 3.11 · FastAPI · uv</div></div>
+        <div class="meta-item"><div class="k">Frontends</div><div class="v">Vite + React (×2)</div></div>
+        <div class="meta-item"><div class="k">Services</div><div class="v">3 backends · 2 UIs</div></div>
+        <div class="meta-item"><div class="k">Transport</div><div class="v">REST + HTTPS · no bus</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 01 — What this is ===== -->
+  <section class="slide" data-menu="What this is" data-menu-group="Overview">
+    <div class="slide-inner">
+      <div class="eyebrow">01</div>
+      <h2>What this blueprint shows</h2>
+      <div class="svc-list">
+        <div class="svc-item">
+          <div class="svc-title">How to post work to a scheduler</div>
+          <div class="svc-desc">Any upstream system (CRM, billing, portal) creates a <code>Job</code>; the scheduler decides when, how, and whether to execute it.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">How the scheduler enforces business policy</div>
+          <div class="svc-desc">Time windows (TCPA quiet hours in recipient's TZ), consent, do-not-contact suppression, retries, channel fallback, dedupe, concurrency caps.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">How Twilio Agent Connect bridges an LLM to Twilio channels</div>
+          <div class="svc-desc">TAC handles inbound webhooks and outbound conversations across voice (ConversationRelay) and SMS, with Memory wired in for identity resolution and persistent context.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">How Event Streams feeds state back</div>
+          <div class="svc-desc">Account-level events — Intelligence operator results, errors, resource lifecycle — land in a single ingestor that validates, dedupes, and appends. Scheduler and wallboard read from the store on their own cadence.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">How to observe the system end-to-end</div>
+          <div class="svc-desc">OpenTelemetry traces across every service, an append-only audit log for business events, and a live wallboard for operators.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 02 — Services ===== -->
+  <section class="slide" data-menu="Services" data-menu-group="Overview">
+    <div class="slide-inner">
+      <div class="eyebrow">02</div>
+      <h2>Services</h2>
+      <div class="svc-list">
+        <div class="svc-item">
+          <div class="svc-title">scheduler <span class="port">:3001 · FastAPI</span></div>
+          <div class="svc-desc">Owns Jobs, JobRuns, and <code>audit.db</code>. All business policy lives here. Fires outbound by calling agent-connect. Receives per-call / per-message <code>StatusCallback</code> directly from Twilio and advances JobRun state.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">agent-connect <span class="port">:3002 · FastAPI · TAC</span></div>
+          <div class="svc-desc">The Twilio Agent Connect application. Inbound SMS + voice webhooks (configured on the Twilio number) + ConversationRelay WebSocket + Memory recall + <code>@function_tool</code> definitions + outbound conversation creation.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">event-ingestor <span class="port">:3003 · FastAPI</span></div>
+          <div class="svc-desc">Dumb Event Streams sink. Validates Twilio signature, dedupes on event id (<code>seen_events</code> table), appends. No routing, no business logic.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">test-harness <span class="port">:5173 · Vite + React</span></div>
+          <div class="svc-desc">Developer tool. Upload a JSON file of jobs, watch each one execute, inspect transcript, memory, Intelligence operator results, and the OTel trace link per job.</div>
+        </div>
+        <div class="svc-item">
+          <div class="svc-title">wallboard <span class="port">:5174 · Vite + React</span></div>
+          <div class="svc-desc">Operator view. Live queue depth, in-flight jobs, success/failure rates, recent audit, recent Intelligence findings. Polls every 2s.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 03 — Architecture ===== -->
+  <section class="slide" data-menu="Architecture" data-menu-group="Diagrams">
+    <div class="slide-inner wide">
+      <div class="eyebrow">03</div>
+      <h2>Architecture</h2>
+
+      <div class="diagram-panel">
+        <div class="diagram-label">Services · Twilio products · caller</div>
+        <svg viewBox="0 0 1560 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blueprint architecture diagram">
+          <defs>
+            <marker id="arr-t" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#B5502E"/>
+            </marker>
+            <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#4E7089"/>
+            </marker>
+            <marker id="arr-v" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#7A6A9E"/>
+            </marker>
+          </defs>
+          <style>
+            .a-h { font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 600; fill: #2B241E; }
+            .a-b { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; fill: #4E4033; }
+            .a-m { font-family: 'IBM Plex Mono', monospace; font-size: 11px; fill: #6C5F51; }
+            .a-s { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-style: italic; fill: #A89A87; }
+            .a-tt { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; fill: #B5502E; }
+            .a-tb { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; fill: #4E7089; }
+            .a-tv { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; fill: #7A6A9E; }
+            .box      { fill: #FBF6EA; stroke: #B8B0A0; stroke-width: 1.2; }
+            .box-sch  { fill: rgba(181,80,46,0.08);  stroke: #B5502E; stroke-width: 1.4; }
+            .box-ac   { fill: rgba(78,112,137,0.08); stroke: #4E7089; stroke-width: 1.4; }
+            .box-ei   { fill: rgba(122,106,158,0.08); stroke: #7A6A9E; stroke-width: 1.4; }
+            .box-up   { fill: rgba(168,122,33,0.08); stroke: #A87A21; stroke-width: 1.4; }
+            .box-tw   { fill: rgba(78,112,137,0.06); stroke: #4E7089; stroke-width: 1.2; }
+            .box-mem  { fill: rgba(78,112,137,0.06); stroke: #4E7089; stroke-width: 1.2; }
+            .box-int  { fill: rgba(122,106,158,0.06); stroke: #7A6A9E; stroke-width: 1.2; }
+            .box-call { fill: rgba(232,166,42,0.1); stroke: #E8A62A; stroke-width: 1.4; }
+            .outer-tw { fill: none; stroke: #B8B0A0; stroke-width: 1; stroke-dasharray: 4 4; }
+            .ar-t { stroke: #B5502E; stroke-width: 1.6; fill: none; }
+            .ar-b { stroke: #4E7089; stroke-width: 1.6; fill: none; }
+            .ar-v { stroke: #7A6A9E; stroke-width: 1.6; fill: none; }
+            .ar-t-d { stroke: #B5502E; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+          </style>
+
+          <!-- Twilio outer wrapper -->
+          <rect class="outer-tw" x="780" y="30" width="610" height="400" rx="8"/>
+          <text class="a-s" x="792" y="22">Twilio platform</text>
+
+          <!-- Upstream app -->
+          <rect class="box-up" x="20" y="100" width="120" height="65" rx="6"/>
+          <text class="a-h" x="28" y="124">Upstream</text>
+          <text class="a-m" x="28" y="146">CRM, billing</text>
+
+          <!-- scheduler -->
+          <rect class="box-sch" x="230" y="60" width="200" height="180" rx="6"/>
+          <text class="a-h" x="240" y="86">scheduler</text>
+          <text class="a-tt" x="240" y="108">policy · queue · audit</text>
+          <text class="a-m" x="240" y="138">· time windows</text>
+          <text class="a-m" x="240" y="156">· consent + DNC</text>
+          <text class="a-m" x="240" y="174">· dedupe + concurrency</text>
+          <text class="a-m" x="240" y="192">· retry + fallback</text>
+          <text class="a-m" x="240" y="210">· audit.db (sqlite)</text>
+
+          <!-- agent-connect -->
+          <rect class="box-ac" x="510" y="60" width="220" height="180" rx="6"/>
+          <text class="a-h" x="520" y="86">agent-connect</text>
+          <text class="a-tb" x="520" y="108">TAC + ConversationRelay</text>
+          <text class="a-m" x="520" y="138">· inbound voice/SMS webhooks</text>
+          <text class="a-m" x="520" y="156">· ConversationRelay WS</text>
+          <text class="a-m" x="520" y="174">· Memory recall</text>
+          <text class="a-m" x="520" y="192">· @function_tool</text>
+          <text class="a-m" x="520" y="210">· outbound creation</text>
+
+          <!-- event-ingestor -->
+          <rect class="box-ei" x="510" y="330" width="220" height="80" rx="6"/>
+          <text class="a-h" x="520" y="356">event-ingestor</text>
+          <text class="a-tv" x="520" y="378">Event Streams sink</text>
+          <text class="a-m" x="520" y="398">validate · dedupe · append</text>
+
+          <!-- ConversationRelay -->
+          <rect class="box-tw" x="800" y="65" width="280" height="65" rx="6"/>
+          <text class="a-h" x="810" y="90">ConversationRelay</text>
+          <text class="a-m" x="810" y="112">voice: STT/TTS + LLM</text>
+
+          <!-- Conversation Memory -->
+          <rect class="box-mem" x="1100" y="65" width="280" height="65" rx="6"/>
+          <text class="a-h" x="1110" y="90">Conversation Memory</text>
+          <text class="a-m" x="1110" y="112">profile + history</text>
+
+          <!-- Conversation Orchestrator -->
+          <rect class="box-tw" x="800" y="150" width="280" height="65" rx="6"/>
+          <text class="a-h" x="810" y="175">Conversation Orchestrator</text>
+          <text class="a-m" x="810" y="197">captures + links traffic</text>
+
+          <!-- Conversation Intelligence -->
+          <rect class="box-int" x="1100" y="150" width="280" height="65" rx="6"/>
+          <text class="a-h" x="1110" y="175">Conversation Intelligence</text>
+          <text class="a-m" x="1110" y="197">transcript operators</text>
+
+          <!-- Event Streams -->
+          <rect class="box-tw" x="800" y="345" width="580" height="55" rx="6"/>
+          <text class="a-h" x="810" y="370">Event Streams</text>
+          <text class="a-m" x="810" y="390">account-level webhook sink</text>
+
+          <!-- Caller -->
+          <rect class="box-call" x="1450" y="135" width="90" height="65" rx="6"/>
+          <text class="a-h" x="1460" y="160">Caller</text>
+          <text class="a-m" x="1460" y="182">phone</text>
+
+          <!-- Arrow 1: Upstream → scheduler -->
+          <line class="ar-t" x1="140" y1="132" x2="224" y2="132" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="182" y="124" text-anchor="middle">POST /jobs</text>
+
+          <!-- Arrow 2: scheduler → agent-connect -->
+          <line class="ar-t" x1="430" y1="100" x2="504" y2="100" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="467" y="92" text-anchor="middle">outbound</text>
+
+          <!-- Arrow 3: agent-connect → ConversationRelay (voice) -->
+          <line class="ar-b" x1="730" y1="97" x2="794" y2="97" marker-end="url(#arr-b)"/>
+          <text class="a-tb" x="762" y="89" text-anchor="middle">connect</text>
+
+          <!-- Arrow 4: Twilio platform → Caller (voice) -->
+          <line class="ar-t" x1="1390" y1="170" x2="1444" y2="170" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1417" y="162" text-anchor="middle">voice</text>
+
+          <!-- Arrow 5: Twilio → scheduler StatusCallback (dashed) -->
+          <path class="ar-t-d" d="M 800 400 Q 500 450 430 220" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="560" y="438" text-anchor="middle">StatusCallback</text>
+
+          <!-- Arrow 6: Event Streams → event-ingestor -->
+          <line class="ar-v" x1="800" y1="372" x2="736" y2="372" marker-end="url(#arr-v)"/>
+          <text class="a-tv" x="768" y="364" text-anchor="middle">events</text>
+
+          <!-- Arrow 7: Caller → Twilio (inbound) -->
+          <line class="ar-t-d" x1="1450" y1="192" x2="1396" y2="192" marker-end="url(#arr-t)"/>
+          <text class="a-tt" x="1423" y="214" text-anchor="middle">inbound</text>
+        </svg>
+        <p class="diagram-caption">
+          Three inbound surfaces from Twilio, each configured where the resource lives:
+          per-call <strong>StatusCallback</strong> → scheduler, phone-number <strong>inbound webhooks</strong> → agent-connect,
+          account-level <strong>Event Streams</strong> → event-ingestor.
+        </p>
+      </div>
+
+      <div class="arch-recap">
+        <ol>
+          <li><strong>Upstream</strong> posts a <code>Job</code> to <strong>scheduler</strong>.</li>
+          <li><strong>scheduler</strong> runs policy (quiet hours, consent, DNC, dedupe, concurrency), then calls <strong>agent-connect</strong> to fire outbound. The <code>statusCallback</code> URL on <code>Calls.create</code> / <code>Messages.create</code> points at the scheduler's own endpoint.</li>
+          <li><strong>agent-connect</strong> opens a <strong>ConversationRelay</strong> session (voice) or sends via Messages (SMS), hydrating with <strong>Conversation Memory</strong> and driven by the LLM.</li>
+          <li><strong>Conversation Intelligence</strong> runs operators (summary, sentiment) over the transcript as it accumulates.</li>
+          <li><strong>Event Streams</strong> emits account-level events to <strong>event-ingestor</strong>, which validates, dedupes, and appends.</li>
+          <li>Per-call lifecycle events (<code>ringing</code>, <code>answered</code>, <code>completed</code>, AMD) flow back to <strong>scheduler</strong> directly via <strong>StatusCallback</strong>, advancing the JobRun.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 04 — Core concepts ===== -->
+  <section class="slide" data-menu="Core concepts" data-menu-group="Overview">
+    <div class="slide-inner">
+      <div class="eyebrow">04</div>
+      <h2>Core concepts</h2>
+      <div class="concept-grid">
+        <div class="concept-block">
+          <h3>Job vs JobRun</h3>
+          <p><strong>Job</strong> is the business intent — "contact this customer at this time for this reason." Immutable once accepted.</p>
+          <p><strong>JobRun</strong> is one execution attempt. Retries create new JobRuns against the same Job. <code>conversation_id</code> lives on <strong>JobRun</strong>, not Job — the Conversation is Twilio-side state created when the Job fires.</p>
+        </div>
+        <div class="concept-block">
+          <h3>Three inbound surfaces</h3>
+          <p><strong>StatusCallback</strong> — per-call lifecycle for calls scheduler originated. Points at scheduler.</p>
+          <p><strong>Phone-number webhooks</strong> — end-user-initiated calls and SMS. Point at agent-connect.</p>
+          <p><strong>Event Streams</strong> — account-wide events, Intelligence operator results, errors. Point at event-ingestor.</p>
+        </div>
+        <div class="concept-block">
+          <h3>Vocabulary</h3>
+          <p>The blueprint uses its own terms (<strong>Job</strong>, <strong>JobRun</strong>, <strong>Scenario</strong>) and never reuses Twilio's <strong>Conversation</strong> or <strong>Communication</strong> as business-side identifiers — those stay as Twilio-side ids inside <code>JobRun</code>.</p>
+        </div>
+        <div class="concept-block">
+          <h3>Tracing vs auditing</h3>
+          <p><strong>Tracing</strong> (OpenTelemetry) answers "where did time go, where did it fail?" — short retention, high volume.</p>
+          <p><strong>Auditing</strong> (append-only <code>audit.db</code> owned by scheduler) answers "who did what, when?" — long retention, explicit <code>audit.record(...)</code> calls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 05 — Outbound sequence ===== -->
+  <section class="slide" data-menu="Outbound call" data-menu-group="Diagrams">
+    <div class="slide-inner wide">
+      <div class="eyebrow">05</div>
+      <h2>Outbound voice call — end to end</h2>
+      <div class="diagram-panel" style="padding: 24px 32px;">
+        <div class="diagram-label">POST /jobs → caller phone rings → JobRun completed</div>
+        <pre class="mermaid" style="background: transparent; margin: 0; text-align: center;">
+sequenceDiagram
+  autonumber
+  actor UP as Upstream app
+  participant S as scheduler
+  participant AC as agent-connect
+  participant TW as Twilio
+  participant CR as ConversationRelay WS
+  actor C as Caller
+
+  UP->>S: POST /jobs { to, scenario, scheduled_for }
+  activate S
+  Note over S: policy checks<br/>quiet hours · consent · DNC<br/>dedupe · concurrency
+
+  alt policy accepted
+    S->>AC: POST /outbound { job }
+    AC->>TW: Calls.create<br/>url=/voice/inbound<br/>statusCallback=/twilio/status
+    TW-->>AC: CallSid
+    TW->>C: phone rings
+    C-->>TW: answers
+
+    TW->>AC: GET /voice/inbound (TwiML request)
+    AC-->>TW: TwiML &lt;Connect&gt;&lt;ConversationRelay url=wss://.../voice/ws&gt;
+    TW->>CR: open WebSocket
+    activate CR
+    CR->>CR: Memory recall · identity resolution
+
+    loop each conversational turn
+      C->>TW: utterance (speech)
+      TW->>CR: {type:"prompt", voicePrompt}
+      CR->>CR: LLM reply · @function_tool
+      CR-->>TW: {type:"text", token} (streamed)
+      TW->>C: TTS audio
+    end
+
+    C-->>TW: hang up
+    deactivate CR
+    TW->>S: POST /twilio/status<br/>CallStatus=completed
+    S->>S: advance JobRun · audit.record(completed)
+    Note over TW,S: Twilio also emits Event Streams events<br/>→ event-ingestor (dedupe + append)
+    deactivate S
+  else policy suppressed
+    S->>S: audit.record(suppressed, reason)
+    deactivate S
+  end
+        </pre>
+        <p class="diagram-caption">
+          The scheduler owns the lifecycle: it posts outbound, receives the per-call <code>StatusCallback</code>, and
+          advances the JobRun. agent-connect owns the conversation runtime via ConversationRelay.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 06 — Inbound sequence ===== -->
+  <section class="slide" data-menu="Inbound call" data-menu-group="Diagrams">
+    <div class="slide-inner wide">
+      <div class="eyebrow">06</div>
+      <h2>Inbound call — caller-initiated</h2>
+      <div class="diagram-panel" style="padding: 24px 32px;">
+        <div class="diagram-label">Caller dials the Twilio number → agent-connect answers</div>
+        <pre class="mermaid" style="background: transparent; margin: 0; text-align: center;">
+sequenceDiagram
+  autonumber
+  actor C as Caller
+  participant TW as Twilio number
+  participant AC as agent-connect
+  participant CR as ConversationRelay WS
+  participant MEM as Conversation Memory
+  participant EI as event-ingestor
+  participant S as scheduler
+
+  C->>TW: dials the Twilio number
+  TW->>AC: POST /voice/inbound<br/>(configured on the number)
+  AC-->>TW: TwiML &lt;Connect&gt;&lt;ConversationRelay&gt;
+  TW->>CR: open WebSocket
+  activate CR
+  CR->>MEM: Recall profile by caller phone
+  MEM-->>CR: observations · traits · history
+  Note over CR: identity resolved before first reply
+
+  loop conversation
+    C->>CR: utterance
+    CR->>CR: LLM + tools
+    CR-->>C: reply via TTS
+  end
+
+  alt agent schedules callback
+    CR->>S: POST /jobs { direction: "inbound-followup" }
+    Note over S: becomes an outbound job later
+  end
+
+  C-->>CR: hang up
+  deactivate CR
+  Note over TW,EI: Event Streams emits<br/>Intelligence OperatorResult, Communication events<br/>→ event-ingestor
+  TW->>EI: POST /twilio/events
+  EI->>EI: validate signature · dedupe · append
+        </pre>
+        <p class="diagram-caption">
+          Scheduler stays out of the inbound path unless the agent chooses to schedule a callback via a tool call,
+          which turns the follow-up into a normal outbound Job on the same policy pipeline.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<nav class="deck-nav">
+  <button class="nav-btn" id="prev-btn" onclick="goTo(current-1)" aria-label="Previous">‹</button>
+  <div class="dots" id="dots"></div>
+  <span class="counter" id="counter">01 / 01</span>
+  <button class="nav-btn" id="next-btn" onclick="goTo(current+1)" aria-label="Next">›</button>
+</nav>
+
+<script>
+  var slides = document.querySelectorAll('.slide');
+  var total = slides.length;
+  var current = 0;
+  var dotsWrap = document.getElementById('dots');
+  var sideMenu = document.getElementById('side-menu');
+  var menuItems = [];
+  var lastGroup = null;
+
+  for (var i = 0; i < total; i++) {
+    var group = slides[i].dataset.menuGroup;
+    if (group && group !== lastGroup) {
+      var h = document.createElement('div');
+      h.className = 'side-menu-group';
+      h.textContent = group;
+      sideMenu.appendChild(h);
+      lastGroup = group;
+    }
+
+    var d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    d.onclick = (function(idx) { return function() { goTo(idx); }; })(i);
+    dotsWrap.appendChild(d);
+
+    var m = document.createElement('button');
+    m.className = 'side-menu-item' + (i === 0 ? ' active' : '');
+    m.textContent = slides[i].dataset.menu || ('Slide ' + (i + 1));
+    m.onclick = (function(idx) { return function() {
+      goTo(idx);
+      if (window.innerWidth < 900) closeMenu();
+    }; })(i);
+    sideMenu.appendChild(m);
+    menuItems.push(m);
+  }
+
+  var menuToggle = document.getElementById('menu-toggle');
+  var menuBackdrop = document.getElementById('menu-backdrop');
+  function openMenu() { sideMenu.classList.add('open'); menuBackdrop.classList.add('open'); document.body.classList.add('menu-open'); }
+  function closeMenu() { sideMenu.classList.remove('open'); menuBackdrop.classList.remove('open'); document.body.classList.remove('menu-open'); }
+  menuToggle.addEventListener('click', function () {
+    sideMenu.classList.contains('open') ? closeMenu() : openMenu();
+  });
+  menuBackdrop.addEventListener('click', closeMenu);
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    dotsWrap.children[current].classList.remove('active');
+    current = i;
+    var incoming = slides[current];
+    incoming.classList.add('active');
+    incoming.scrollTop = 0;
+    dotsWrap.children[current].classList.add('active');
+    menuItems.forEach(function (m) { m.classList.remove('active'); });
+    menuItems[current].classList.add('active');
+    document.getElementById('counter').textContent = pad(current + 1) + ' / ' + pad(total);
+    document.getElementById('prev-btn').disabled = current === 0;
+    document.getElementById('next-btn').disabled = current === total - 1;
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(current - 1);
+  });
+
+  goTo(0);
+</script>
+
+<!-- Mermaid: declarative sequence diagrams themed to the Paper palette -->
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+      fontSize: '14px',
+      primaryColor:         '#FDD35C',
+      primaryBorderColor:   '#E8A62A',
+      primaryTextColor:     '#D9482E',
+      lineColor:            '#E88030',
+      signalColor:          '#E88030',
+      signalTextColor:      '#2B241E',
+      noteBkgColor:         '#FFF6DC',
+      noteBorderColor:      '#E8A62A',
+      noteTextColor:        '#4E4033',
+      actorBkg:             '#FDD35C',
+      actorBorder:          '#E8A62A',
+      actorTextColor:       '#D9482E',
+      actorLineColor:       '#E88030',
+      activationBkgColor:   '#F0EFEA',
+      activationBorderColor:'#B8B0A0',
+      labelBoxBkgColor:     '#EEF3F9',
+      labelBoxBorderColor:  '#6BA4E7',
+      labelTextColor:       '#4A6B85',
+      sequenceNumberColor:  '#2B241E',
+      altBackground:        'rgba(107,164,231,0.06)'
+    },
+    sequence: {
+      diagramMarginX: 24,
+      diagramMarginY: 12,
+      boxMargin: 20,
+      noteMargin: 12,
+      messageMargin: 50,
+      mirrorActors: false,
+      wrap: true
+    }
+  });
+</script>
+
+</body>
+</html>
