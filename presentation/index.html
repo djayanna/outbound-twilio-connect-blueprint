@@ -130,6 +130,69 @@
     .concept-grid { grid-template-columns: 1fr; }
   }
 
+  /* Job anatomy slide */
+  .job-anatomy-grid {
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: start;
+  }
+  .job-samples { display: flex; flex-direction: column; gap: 14px; }
+  .job-sample {
+    background: var(--bg-alt); border: 1px dotted var(--line); border-radius: 6px;
+    overflow: hidden;
+  }
+  .job-sample .job-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; border-bottom: 1px dotted var(--line);
+    background: #FBF8EE;
+  }
+  .job-sample .job-head .job-ch {
+    font-family: var(--font-m); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .job-sample .job-head .job-ch strong { color: var(--text); font-weight: 600; }
+  .job-pill {
+    font-family: var(--font-m); font-size: 10.5px; padding: 1px 9px; border-radius: 999px;
+    background: var(--terracotta-soft); color: var(--terracotta); border: 1px solid rgba(181,80,46,0.25);
+    letter-spacing: 0.03em;
+  }
+  .job-pill.sms { background: var(--dusty-blue-soft); color: var(--dusty-blue); border-color: rgba(78,112,137,0.3); }
+  .job-pill.voice { background: var(--terracotta-soft); color: var(--terracotta); border-color: rgba(181,80,46,0.3); }
+  .job-sample pre { margin: 0; padding: 12px 16px; overflow-x: auto; }
+  .job-sample code {
+    font-family: var(--font-m); font-size: 11.5px; line-height: 1.6;
+    color: var(--text); white-space: pre; background: none; padding: 0;
+  }
+  .job-sample .k { color: var(--dusty-blue); }
+  .job-sample .s { color: var(--terracotta); }
+  .job-sample .n { color: var(--violet); }
+  .job-sample .b { color: var(--ochre); }
+  .job-sample .c { color: var(--text-faint); font-style: italic; }
+
+  .job-legend {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .job-legend h3 {
+    font-family: var(--font-h); font-size: 17px; font-weight: 600; margin-bottom: 12px;
+  }
+  .job-legend-row {
+    padding: 8px 0; border-bottom: 1px dotted var(--line);
+    display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: baseline;
+  }
+  .job-legend-row:last-child { border-bottom: none; }
+  .job-legend-row .f {
+    font-family: var(--font-m); font-size: 11.5px; color: var(--terracotta);
+  }
+  .job-legend-row .d { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+  .job-legend-row .d code {
+    font-family: var(--font-m); font-size: 11px; color: var(--terracotta);
+    background: var(--terracotta-soft); padding: 0 4px; border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .job-anatomy-grid { grid-template-columns: 1fr; }
+  }
+
   /* Why slide */
   .why-lede {
     font-size: 15.5px; color: var(--text-dim); max-width: 780px; margin-bottom: 24px;
@@ -753,6 +816,134 @@
     </div>
   </section>
 
+  <!-- ===== 04 — Job anatomy ===== -->
+  <section class="slide" data-menu="A Job, by example" data-menu-group="Overview">
+    <div class="slide-inner wide">
+      <div class="eyebrow">04</div>
+      <h2>A Job, by example</h2>
+      <p class="why-lede" style="margin-bottom: 22px;">
+        Three real Jobs an upstream system might POST on <code>/jobs</code> 
+        <br/>SMS appointment confirmation, voice payment reminder with a retry budget, marketing SMS that must carry a consent record.
+      </p>
+
+      <div class="job-anatomy-grid">
+        <div class="job-samples">
+
+          <div class="job-sample">
+            <div class="job-head">
+              <div class="job-ch">Example · <strong>appointment confirmation</strong></div>
+              <span class="job-pill sms">SMS</span>
+            </div>
+<pre><code>{
+  <span class="k">"id"</span>: <span class="s">"job-0001"</span>,
+  <span class="k">"direction"</span>: <span class="s">"outbound"</span>,
+  <span class="k">"channel"</span>: <span class="s">"sms"</span>,
+  <span class="k">"to"</span>: <span class="s">"+1 555 111 0001"</span>,
+  <span class="k">"scheduled_for"</span>: <span class="s">"now"</span>,
+  <span class="k">"scenario"</span>: <span class="s">"appointment-confirmation"</span>,
+  <span class="k">"context"</span>: {
+    <span class="k">"appointment_time"</span>: <span class="s">"2026-10-05T15:00:00Z"</span>
+  },
+  <span class="k">"upstream_callback_url"</span>: <span class="s">"https://crm.example.com/twilio/jobs/job-0001/events"</span>
+}</code></pre>
+          </div>
+
+          <div class="job-sample">
+            <div class="job-head">
+              <div class="job-ch">Example · <strong>payment reminder</strong></div>
+              <span class="job-pill voice">Voice</span>
+            </div>
+<pre><code>{
+  <span class="k">"id"</span>: <span class="s">"job-0002"</span>,
+  <span class="k">"direction"</span>: <span class="s">"outbound"</span>,
+  <span class="k">"channel"</span>: <span class="s">"voice"</span>,
+  <span class="k">"to"</span>: <span class="s">"+1 555 111 0002"</span>,
+  <span class="k">"scheduled_for"</span>: <span class="s">"2026-10-10T14:00:00Z"</span>,
+  <span class="k">"scenario"</span>: <span class="s">"payment-reminder"</span>,
+  <span class="k">"context"</span>: {
+    <span class="k">"amount_due"</span>: <span class="s">"249.00"</span>,
+    <span class="k">"due_date"</span>: <span class="s">"2026-10-10"</span>
+  },
+  <span class="k">"retry_policy"</span>: {
+    <span class="k">"max_attempts"</span>: <span class="n">2</span>,
+    <span class="k">"backoff_seconds"</span>: <span class="n">300</span>
+  },
+  <span class="k">"upstream_callback_url"</span>: <span class="s">"https://billing.example.com/webhooks/twilio-jobs"</span>
+}</code></pre>
+          </div>
+
+          <div class="job-sample">
+            <div class="job-head">
+              <div class="job-ch">Example · <strong>marketing promotion</strong></div>
+              <span class="job-pill sms">SMS</span>
+            </div>
+<pre><code>{
+  <span class="k">"id"</span>: <span class="s">"job-0003"</span>,
+  <span class="k">"direction"</span>: <span class="s">"outbound"</span>,
+  <span class="k">"channel"</span>: <span class="s">"sms"</span>,
+  <span class="k">"to"</span>: <span class="s">"+1 555 111 0003"</span>,
+  <span class="k">"scheduled_for"</span>: <span class="s">"now"</span>,
+  <span class="k">"scenario"</span>: <span class="s">"promotion"</span>,
+  <span class="k">"consent"</span>: {
+    <span class="k">"source"</span>: <span class="s">"web-signup"</span>,
+    <span class="k">"captured_at"</span>: <span class="s">"2026-09-01T12:00:00Z"</span>
+  },
+  <span class="k">"constraints"</span>: {
+    <span class="k">"allowed_hours_local"</span>: <span class="s">"09:00-20:00"</span>
+  },
+  <span class="k">"upstream_callback_url"</span>: <span class="s">"https://marketing.example.com/campaigns/callbacks"</span>
+}</code></pre>
+          </div>
+
+        </div>
+
+        <div class="job-legend">
+          <h3>What each field does</h3>
+          <div class="job-legend-row">
+            <div class="f">id</div>
+            <div class="d">Your identifier for the outreach. Echoed back in every callback and audit event — the key you'll correlate your records against.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">channel</div>
+            <div class="d"><code>"voice"</code> or <code>"sms"</code>.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">to</div>
+            <div class="d">E.164 recipient. Timezone is derived from the number for quiet-hour checks.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">scheduled_for</div>
+            <div class="d"><code>"now"</code> or an ISO timestamp. Scheduler holds the Job until then.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">scenario</div>
+            <div class="d">Keys into the system prompt and tool set agent-connect uses to run the conversation.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">context</div>
+            <div class="d">Free-form data merged into the prompt — appointment times, amounts, order ids.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">consent</div>
+            <div class="d">Required for marketing SMS. Scheduler refuses the Job without one.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">constraints</div>
+            <div class="d"><code>allowed_hours_local</code>, <code>do_not_contact_before</code>. Overrides the default policy per Job.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">retry_policy</div>
+            <div class="d">Attempts and backoff on failure. Each retry creates a new JobRun.</div>
+          </div>
+          <div class="job-legend-row">
+            <div class="f">upstream_callback_url</div>
+            <div class="d">Where scheduler POSTs lifecycle events — accepted, suppressed, each JobRun transition, terminal outcome.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ====================================================================
        Service deep-dive slides — one slide per service
        ==================================================================== -->
@@ -1172,7 +1363,7 @@
   <!-- ===== 05 — Architecture ===== -->
   <section class="slide" data-menu="Architecture" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">04</div>
+      <div class="eyebrow">05</div>
       <h2>Architecture</h2>
 
       <div class="diagram-panel">
@@ -1359,7 +1550,7 @@
   <!-- ===== 06 — Outbound sequence ===== -->
   <section class="slide" data-menu="Outbound call" data-menu-group="Diagrams">
     <div class="slide-inner wide">
-      <div class="eyebrow">05</div>
+      <div class="eyebrow">06</div>
       <h2>Outbound voice call — end to end</h2>
       <div class="diagram-panel" style="padding: 24px 32px;">
         <div class="diagram-label">POST /jobs → caller phone rings → JobRun completed</div>
