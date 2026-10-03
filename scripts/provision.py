@@ -1,6 +1,6 @@
 """Provision Twilio resources this blueprint needs and write IDs to .env.
 
-Resources created:
+Resources managed:
   - Memory Store (memory.twilio.com)
   - Orchestrator Configuration (conversations.twilio.com/v2)
   - Intelligence Configuration (intelligence.twilio.com/v3)
@@ -8,17 +8,25 @@ Resources created:
   - Event Streams Subscription linking the sink to the event types the
     event-ingestor filters on
 
+Idempotent: if an SID is already present in .env and the resource still
+exists on Twilio, the script reuses it. Only missing / stale resources
+are created. Pass `--force` to recreate everything from scratch (useful
+if you've changed names, Configuration shape, or want a clean slate).
+
 Usage:
   uv run python scripts/provision.py
+  uv run python scripts/provision.py --force
 
 See docs/02-twilio-provisioning.md for prerequisites.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 import httpx
 from dotenv import load_dotenv
@@ -38,8 +46,7 @@ ENV_PATH = Path(".env")
 # {type, schema_version}; schema versions move slowly and are listed at
 # https://events.twilio.com/v1/Types and in the Twilio console.
 # If a type is rejected (unknown name / wrong version), the subscribe
-# step logs the error and continues with the rest — tweak this list
-# instead of hunting the error down.
+# step logs the error and bails without wedging the earlier steps.
 SUBSCRIPTION_TYPES: list[dict] = [
     # Voice call lifecycle — redundant with the per-call statusCallback the
     # scheduler already receives, but useful as a backchannel + for calls
@@ -74,7 +81,22 @@ def _write_env(key: str, value: str) -> None:
     print(f"  wrote {key}={value}")
 
 
-def create_memory_store() -> str:
+def _exists(url: str) -> bool:
+    """Return True iff a GET on `url` succeeds (200). Used to decide whether
+    an SID we have in .env is still a live resource on Twilio."""
+    try:
+        r = httpx.get(url, auth=AUTH, timeout=10)
+    except httpx.HTTPError:
+        return False
+    return r.status_code == 200
+
+
+def ensure_memory_store(force: bool) -> str:
+    sid = os.getenv("TWILIO_MEMORY_STORE_ID", "")
+    if sid and not force and _exists(f"https://memory.twilio.com/v1/Services/{sid}"):
+        print(f"reusing Memory Store {sid}")
+        return sid
+
     print("creating Memory Store…")
     r = httpx.post(
         "https://memory.twilio.com/v1/Services",
@@ -88,7 +110,16 @@ def create_memory_store() -> str:
     return sid
 
 
-def create_orchestrator_config(memory_store_id: str) -> str:
+def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
+    sid = os.getenv("TWILIO_CONVERSATION_CONFIGURATION_ID", "")
+    if (
+        sid
+        and not force
+        and _exists(f"https://conversations.twilio.com/v2/ControlPlane/Configurations/{sid}")
+    ):
+        print(f"reusing Orchestrator Configuration {sid}")
+        return sid
+
     print("creating Orchestrator Configuration…")
     if not PHONE:
         print("  WARN: TWILIO_PHONE_NUMBER not set; capture rules will be left empty")
@@ -125,7 +156,16 @@ def create_orchestrator_config(memory_store_id: str) -> str:
     return config_id
 
 
-def create_intelligence_config() -> str:
+def ensure_intelligence_config(force: bool) -> str:
+    sid = os.getenv("TWILIO_INTELLIGENCE_CONFIGURATION_ID", "")
+    if (
+        sid
+        and not force
+        and _exists(f"https://intelligence.twilio.com/v3/ControlPlane/Configurations/{sid}")
+    ):
+        print(f"reusing Intelligence Configuration {sid}")
+        return sid
+
     print("creating Intelligence Configuration…")
     r = httpx.post(
         "https://intelligence.twilio.com/v3/ControlPlane/Configurations",
@@ -151,10 +191,16 @@ def create_intelligence_config() -> str:
     return config_id
 
 
-def create_event_streams_sink() -> str:
+def ensure_event_streams_sink(force: bool) -> str:
     if not EVENT_INGESTOR_PUBLIC_URL:
         print("skipping Event Streams sink — set EVENT_INGESTOR_PUBLIC_URL to enable")
         return ""
+
+    sid = os.getenv("TWILIO_EVENT_STREAMS_SINK_SID", "")
+    if sid and not force and _exists(f"https://events.twilio.com/v1/Sinks/{sid}"):
+        print(f"reusing Event Streams sink {sid}")
+        return sid
+
     print("creating Event Streams webhook sink…")
     r = httpx.post(
         "https://events.twilio.com/v1/Sinks",
@@ -175,7 +221,7 @@ def create_event_streams_sink() -> str:
     return sid
 
 
-def create_event_streams_subscription(sink_sid: str) -> str:
+def ensure_event_streams_subscription(sink_sid: str, force: bool) -> str:
     """Link the sink to the event types we care about.
 
     A sink with no subscriptions receives nothing — this step is what
@@ -185,12 +231,16 @@ def create_event_streams_subscription(sink_sid: str) -> str:
     if not sink_sid:
         print("skipping Event Streams subscription — no sink to attach")
         return ""
+
+    sid = os.getenv("TWILIO_EVENT_STREAMS_SUBSCRIPTION_SID", "")
+    if sid and not force and _exists(f"https://events.twilio.com/v1/Subscriptions/{sid}"):
+        print(f"reusing Event Streams subscription {sid}")
+        return sid
+
     print("creating Event Streams subscription…")
     # Repeated `Types` form field — one entry per subscribed event type.
     # httpx accepts list[tuple[str, str]] at runtime for this; typeshed is
     # narrower, hence the cast.
-    from typing import cast
-
     data: list[tuple[str, str]] = [
         ("Description", "voice-blueprint"),
         ("SinkSid", sink_sid),
@@ -219,12 +269,20 @@ def create_event_streams_subscription(sink_sid: str) -> str:
 
 
 def main() -> None:
-    print("voice-blueprint · Twilio provisioning")
-    mem = create_memory_store()
-    create_orchestrator_config(mem)
-    create_intelligence_config()
-    sink = create_event_streams_sink()
-    create_event_streams_subscription(sink)
+    parser = argparse.ArgumentParser(description="Provision Twilio resources for the blueprint.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Recreate every resource even if an SID is already set in .env.",
+    )
+    args = parser.parse_args()
+
+    print("voice-blueprint · Twilio provisioning" + (" (--force)" if args.force else ""))
+    mem = ensure_memory_store(args.force)
+    ensure_orchestrator_config(mem, args.force)
+    ensure_intelligence_config(args.force)
+    sink = ensure_event_streams_sink(args.force)
+    ensure_event_streams_subscription(sink, args.force)
     print("done.")
 
 

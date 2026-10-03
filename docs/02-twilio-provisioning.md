@@ -1,6 +1,15 @@
 # Twilio provisioning
 
-`scripts/provision.py` creates every Twilio resource the blueprint needs and writes the resulting SIDs to your `.env`. Running it is idempotent only in the sense that each call creates fresh resources — rerun if you need to start over.
+`scripts/provision.py` creates every Twilio resource the blueprint needs and writes the resulting SIDs to your `.env`. The script is **idempotent**: if an SID is already in `.env` and the resource still exists on Twilio (the script `GET`s each one to confirm), the SID is reused and nothing new is created. Rerun it any time — adding env vars, moving a tunnel URL, or picking up a new type in the subscription list — without producing duplicate resources on your account.
+
+Pass `--force` to recreate everything from scratch (useful after changing resource names or the Configuration shape):
+
+```bash
+uv run python scripts/provision.py          # idempotent (default)
+uv run python scripts/provision.py --force  # recreate all
+```
+
+Stale SIDs (ones that point at resources since deleted) are detected via the GET probe and recreated automatically — no need for `--force` in that case.
 
 ## What gets created
 
