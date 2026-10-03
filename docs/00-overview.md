@@ -33,7 +33,7 @@ Shared `voice_blueprint_shared` package provides `Job`/`JobRun`/`Consent`/`Const
 6. For each turn: caller speaks → STT → `on_message_ready` runs the scenario-aware prompt + Memory-wrapped OpenAI call + optional tools → TTS → audio streamed back.
 7. Twilio POSTs each state change (initiated/ringing/answered/completed) to the scheduler's `/twilio/status`. The handler translates to our `RunStatus` and audits.
 8. On terminal failure (`no-answer`, `busy`, `failed`), scheduler consults the retry policy + channel-fallback rules. Voice no-answer → the next attempt dispatches as SMS.
-9. Every lifecycle event is POSTed to the Job's `upstream_callback_url` with an `X-Blueprint-Signature` HMAC header, and mirrored to event-ingestor's `/scheduler/lifecycle` so the single audit log carries both halves.
+9. Every lifecycle event is POSTed to the Job's `upstream_callback_url` with an `X-Blueprint-Signature` HMAC header. Scheduler audits locally; event-ingestor audits Twilio-originated events — the two logs are intentionally distinct.
 
 ## Where things live
 
