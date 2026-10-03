@@ -1,18 +1,35 @@
+"""Event routing.
+
+Twilio Event Streams delivers events keyed by `type` (reverse-DNS format
+like `com.twilio.voice.call.status-changed`). The ingestor audits every
+accepted event; this module decides what *else* to do with it:
+
+  * voice.call.* / messaging.message.*
+      → forward to scheduler so run state transitions.
+  * intelligence.operator-result.*
+      → forward as well — scheduler attaches operator results to the
+        matching JobRun (via /internal/events).
+  * conversations.memory.*
+      → audit only. Not state-changing on our side.
+
+Unknown types are ignored (still audited at the main.py level).
+"""
 import contextlib
 
 import httpx
 
 from event_ingestor.config import settings
 
-# event-type → handler
-# TODO: expand as we wire specific event schemas
+_FORWARD_PREFIXES = (
+    "com.twilio.voice.call",
+    "com.twilio.messaging.message",
+    "com.twilio.intelligence.operator-result",
+)
 
 
 async def route_event(ev: dict) -> None:
     event_type = ev.get("type", "")
-    if event_type.startswith("com.twilio.voice.call") or event_type.startswith(
-        "com.twilio.messaging.message"
-    ):
+    if any(event_type.startswith(p) for p in _FORWARD_PREFIXES):
         await _notify_scheduler(ev)
 
 

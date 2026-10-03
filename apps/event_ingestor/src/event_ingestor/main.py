@@ -26,6 +26,27 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/scheduler/lifecycle")
+async def scheduler_lifecycle(req: Request):
+    """Scheduler fan-in. Lets the single audit log carry both halves.
+
+    Body shape is the audit event {at, actor, action, subject, data}.
+    No signature required — intended for intra-cluster calls; add
+    network-level auth in prod.
+    """
+    ev = await req.json()
+    audit_record(
+        req.app.state.audit_db,
+        AuditEvent(
+            actor=ev.get("actor", "scheduler"),
+            action=ev.get("action", "unknown"),
+            subject=ev.get("subject", "unknown"),
+            data=ev.get("data") or {},
+        ),
+    )
+    return {"ok": True}
+
+
 @app.post("/twilio/events")
 async def twilio_events(req: Request):
     body = await req.body()
