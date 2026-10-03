@@ -1,0 +1,56 @@
+services:
+  scheduler:
+    build:
+      context: .
+      dockerfile: apps/scheduler/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      JOBS_DB_PATH: /data/jobs.db
+      AUDIT_DB_PATH: /data/audit.db
+      AGENT_CONNECT_URL: http://agent-connect:3002
+      EVENT_INGESTOR_URL: http://event-ingestor:3003
+    ports: ["3001:3001"]
+    volumes: [sql:/data]
+
+  agent-connect:
+    build:
+      context: .
+      dockerfile: apps/agent_connect/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SCHEDULER_PUBLIC_URL: ${SCHEDULER_PUBLIC_URL:-}
+    ports: ["3002:3002"]
+
+  event-ingestor:
+    build:
+      context: .
+      dockerfile: apps/event_ingestor/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SCHEDULER_URL: http://scheduler:3001
+      AUDIT_DB_PATH: /data/audit.db
+    ports: ["3003:3003"]
+    volumes: [sql:/data]
+
+  test-harness:
+    build:
+      context: .
+      dockerfile: apps/test_harness/Dockerfile
+    depends_on: [scheduler]
+    ports: ["5173:80"]
+
+  wallboard:
+    build:
+      context: .
+      dockerfile: apps/wallboard/Dockerfile
+    depends_on: [scheduler]
+    ports: ["5174:80"]
+
+volumes:
+  sql: {}
