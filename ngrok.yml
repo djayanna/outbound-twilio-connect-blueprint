@@ -1,6 +1,8 @@
 version: "3"
-agent:
-  authtoken_from_env: true
+# authtoken is read from NGROK_AUTHTOKEN or from your global config at
+# ~/Library/Application Support/ngrok/ngrok.yml (ngrok 3 falls back to it).
+# Older examples show `agent: { authtoken_from_env: true }`; ngrok 3 does
+# not recognize that key and will refuse to start — omit entirely.
 tunnels:
   # agent-connect — serves inbound TwiML, ConversationRelay WebSocket,
   # SMS webhook, call-event callbacks. Points to TWILIO_VOICE_PUBLIC_DOMAIN.
