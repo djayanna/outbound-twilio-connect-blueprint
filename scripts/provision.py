@@ -26,7 +26,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import cast
 
 import httpx
 from dotenv import load_dotenv
@@ -283,17 +282,23 @@ def ensure_event_streams_subscription(sink_sid: str, force: bool) -> str:
 
     print("creating Event Streams subscription…")
     # Repeated `Types` form field — one entry per subscribed event type.
-    # httpx accepts list[tuple[str, str]] at runtime for this; typeshed is
-    # narrower, hence the cast.
-    data: list[tuple[str, str]] = [
-        ("Description", "voice-blueprint"),
-        ("SinkSid", sink_sid),
-        *(("Types", json.dumps(t)) for t in SUBSCRIPTION_TYPES),
-    ]
+    # Serialize the application/x-www-form-urlencoded body by hand so
+    # repeated keys survive (httpx's dict-based form encoding collapses
+    # them, which is what caused the h11 send-crash on the first version).
+    from urllib.parse import urlencode
+
+    body = urlencode(
+        [
+            ("Description", "voice-blueprint"),
+            ("SinkSid", sink_sid),
+            *(("Types", json.dumps(t)) for t in SUBSCRIPTION_TYPES),
+        ]
+    )
     r = httpx.post(
         "https://events.twilio.com/v1/Subscriptions",
         auth=AUTH,
-        data=cast("dict", data),
+        content=body,
+        headers={"content-type": "application/x-www-form-urlencoded"},
         timeout=30,
     )
     if r.status_code >= 400:
