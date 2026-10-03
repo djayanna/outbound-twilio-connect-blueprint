@@ -1,3 +1,5 @@
+import contextlib
+
 import httpx
 
 from event_ingestor.config import settings
@@ -15,9 +17,7 @@ async def route_event(ev: dict) -> None:
 
 
 async def _notify_scheduler(ev: dict) -> None:
-    async with httpx.AsyncClient(timeout=10) as client:
-        try:
-            await client.post(f"{settings.scheduler_url}/internal/events", json=ev)
-        except httpx.HTTPError:
-            # swallow — scheduler notification is best-effort; audit still captures the event
-            pass
+    # Scheduler notification is best-effort — audit still captures the event
+    # whether or not the scheduler is reachable.
+    async with httpx.AsyncClient(timeout=10) as client, contextlib.suppress(httpx.HTTPError):
+        await client.post(f"{settings.scheduler_url}/internal/events", json=ev)
