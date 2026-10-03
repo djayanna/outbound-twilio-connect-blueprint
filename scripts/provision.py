@@ -61,21 +61,41 @@ INTELLIGENCE_OPERATORS: list[str] = [
 
 
 SUBSCRIPTION_TYPES: list[dict] = [
+    # Names are verified against GET https://events.twilio.com/v1/Types on a
+    # live account. If a subscription create ever returns 20409 "Type … not
+    # found in the system", that endpoint is the canonical list — browse it
+    # in the Twilio console or `twilio api:events:v1:types:list`.
+    #
+    # We intentionally omit `schema_version` so Twilio uses the latest. New
+    # schemas usually add nullable fields; the ingestor's loose routing
+    # tolerates that.
+
     # Voice call lifecycle — redundant with the per-call statusCallback the
     # scheduler already receives, but useful as a backchannel + for calls
     # that bypass our outbound (e.g. inbound).
-    {"type": "com.twilio.voice.status-callback.call.initiated", "schema_version": 1},
-    {"type": "com.twilio.voice.status-callback.call.ringing", "schema_version": 1},
-    {"type": "com.twilio.voice.status-callback.call.answered", "schema_version": 1},
-    {"type": "com.twilio.voice.status-callback.call.completed", "schema_version": 1},
-    # Messaging delivery status — same story as voice.
-    {"type": "com.twilio.messaging.message.sent", "schema_version": 1},
-    {"type": "com.twilio.messaging.message.delivered", "schema_version": 1},
-    {"type": "com.twilio.messaging.message.undelivered", "schema_version": 1},
-    {"type": "com.twilio.messaging.message.failed", "schema_version": 1},
-    # Intelligence operator result — ONLY arrives via Event Streams; this
-    # is why the subscription matters even if you ignore voice/SMS above.
-    {"type": "com.twilio.intelligence.operator-result.created", "schema_version": 1},
+    {"type": "com.twilio.voice.status-callback.call.initiated"},
+    {"type": "com.twilio.voice.status-callback.call.ringing"},
+    {"type": "com.twilio.voice.status-callback.call.answered"},
+    {"type": "com.twilio.voice.status-callback.call.completed"},
+    # AMD verdict — fires when async machine-detection resolves.
+    {"type": "com.twilio.voice.status-callback.amd.detected"},
+
+    # Messaging delivery status.
+    {"type": "com.twilio.messaging.message.sent"},
+    {"type": "com.twilio.messaging.message.delivered"},
+    {"type": "com.twilio.messaging.message.undelivered"},
+    {"type": "com.twilio.messaging.message.failed"},
+
+    # NOTE: Conversation Intelligence event types
+    # (com.twilio.engagement-intelligence.transcript.*) are restricted/
+    # beta — Twilio returns 20409 "is restricted" on subscribe for most
+    # accounts. If your account has access, add them here:
+    #
+    #   {"type": "com.twilio.engagement-intelligence.transcript.operators.results-available"},
+    #   {"type": "com.twilio.engagement-intelligence.transcript.finished"},
+    #
+    # Operator results are also available via the Intelligence v3 API
+    # (poll the configuration's /Results endpoint) as a fallback.
 ]
 
 
@@ -339,16 +359,18 @@ def ensure_event_streams_subscription(sink_sid: str, force: bool) -> str:
         timeout=30,
     )
     if r.status_code >= 400:
-        # Partial failure — print the body and bail cleanly so operators can
-        # fix the Types list without re-running the whole script.
+        # Non-zero exit so operators (and CI) know the run didn't fully
+        # succeed. Common cause: a Type name was wrong (20409) or the
+        # Sink SID is stale (20404). The Twilio body usually names the
+        # culprit — browse https://events.twilio.com/v1/Types for the
+        # canonical catalog and edit SUBSCRIPTION_TYPES.
         print(
             f"  subscription create failed: {r.status_code} {r.text}\n"
-            "  (unknown type names or wrong schema_version are the usual cause;\n"
-            "  inspect https://events.twilio.com/v1/Types to reconcile and "
-            "edit SUBSCRIPTION_TYPES in scripts/provision.py)",
+            "  inspect https://events.twilio.com/v1/Types to reconcile "
+            "and edit SUBSCRIPTION_TYPES in scripts/provision.py.",
             file=sys.stderr,
         )
-        return ""
+        raise SystemExit(1)
     sid = r.json()["sid"]
     _write_env("TWILIO_EVENT_STREAMS_SUBSCRIPTION_SID", sid)
     return sid
