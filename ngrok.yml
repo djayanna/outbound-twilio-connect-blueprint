@@ -2,9 +2,18 @@ version: "3"
 agent:
   authtoken_from_env: true
 tunnels:
+  # agent-connect — serves inbound TwiML, ConversationRelay WebSocket,
+  # SMS webhook, call-event callbacks. Points to TWILIO_VOICE_PUBLIC_DOMAIN.
   agent-connect:
     addr: 3002
     proto: http
+  # scheduler — receives per-call statusCallback from Twilio.
+  # Points to SCHEDULER_PUBLIC_URL.
+  scheduler:
+    addr: 3001
+    proto: http
+  # event-ingestor — Twilio Event Streams webhook sink target.
+  # Points to EVENT_INGESTOR_PUBLIC_URL.
   event-ingestor:
     addr: 3003
     proto: http
