@@ -17,11 +17,11 @@ type AuditEvt = { at: string; actor: string; action: string; subject: string; da
 const SCENARIOS = ["appointment-confirmation", "payment-reminder", "promotion"] as const;
 
 async function postJob(body: unknown): Promise<{ decision: { outcome: string; reason: string | null } }> {
-  const r = await fetch("/api/jobs", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const key = (import.meta as unknown as { env: Record<string, string> }).env
+    ?.VITE_BLUEPRINT_API_KEY;
+  if (key) headers["X-Blueprint-Key"] = key;
+  const r = await fetch("/api/jobs", { method: "POST", headers, body: JSON.stringify(body) });
   return r.json();
 }
 

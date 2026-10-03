@@ -12,13 +12,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from twilio.request_validator import RequestValidator
 from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import JobRun
 
 from scheduler.config import settings
 from scheduler.fallback.channel import next_channel
+from scheduler.http.auth import require_api_key
 from scheduler.jobs.retry import next_attempt
 from scheduler.jobs.store import JobStore
 from scheduler.outbound.notify import record_and_notify
@@ -46,7 +47,7 @@ async def twilio_status(req: Request):
     return {"ok": True}
 
 
-@router.post("/internal/events")
+@router.post("/internal/events", dependencies=[Depends(require_api_key)])
 async def internal_event(req: Request):
     """JSON event fan-in from event-ingestor. Loosely-typed by design."""
     ev = await req.json()

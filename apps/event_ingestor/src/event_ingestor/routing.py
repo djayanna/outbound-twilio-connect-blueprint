@@ -36,5 +36,8 @@ async def route_event(ev: dict) -> None:
 async def _notify_scheduler(ev: dict) -> None:
     # Scheduler notification is best-effort — audit still captures the event
     # whether or not the scheduler is reachable.
+    headers = {}
+    if settings.scheduler_api_key:
+        headers["X-Blueprint-Key"] = settings.scheduler_api_key
     async with httpx.AsyncClient(timeout=10) as client, contextlib.suppress(httpx.HTTPError):
-        await client.post(f"{settings.scheduler_url}/internal/events", json=ev)
+        await client.post(f"{settings.scheduler_url}/internal/events", json=ev, headers=headers)

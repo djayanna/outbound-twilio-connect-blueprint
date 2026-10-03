@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import Job
 
+from scheduler.http.auth import require_api_key
 from scheduler.jobs.lifecycle import accept_job
 from scheduler.jobs.store import JobStore
 from scheduler.outbound.notify import record_and_notify
@@ -24,7 +25,7 @@ def _dnc(req: Request) -> DncRepository:
     return req.app.state.dnc
 
 
-@router.post("/jobs", status_code=201)
+@router.post("/jobs", status_code=201, dependencies=[Depends(require_api_key)])
 async def create_job(job: Job, req: Request):
     existing = store(req).get_job(job.id)
     if existing is not None:
@@ -106,7 +107,7 @@ def dnc_list(req: Request):
     return {"entries": _dnc(req).list()}
 
 
-@router.post("/dnc", status_code=201)
+@router.post("/dnc", status_code=201, dependencies=[Depends(require_api_key)])
 def dnc_add(body: DncRequest, req: Request):
     _dnc(req).add(body.phone, body.reason)
     audit_record(
@@ -117,7 +118,7 @@ def dnc_add(body: DncRequest, req: Request):
     return {"phone": body.phone, "reason": body.reason}
 
 
-@router.delete("/dnc/{phone}")
+@router.delete("/dnc/{phone}", dependencies=[Depends(require_api_key)])
 def dnc_remove(phone: str, req: Request):
     removed = _dnc(req).remove(phone)
     if not removed:
