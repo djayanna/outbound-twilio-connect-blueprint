@@ -104,36 +104,72 @@ def _exists(url: str) -> bool:
     return r.status_code == 200
 
 
+_MEMORY_STORE_BASE = "https://memory.twilio.com/v1/ControlPlane/Stores"
+
+
 def ensure_memory_store(force: bool) -> str:
     sid = os.getenv("TWILIO_MEMORY_STORE_ID", "")
-    if sid and not force and _exists(f"https://memory.twilio.com/v1/Services/{sid}"):
+    if sid and not force and _exists(f"{_MEMORY_STORE_BASE}/{sid}"):
         print(f"reusing Memory Store {sid}")
         return sid
 
     print("creating Memory Store…")
     r = httpx.post(
-        "https://memory.twilio.com/v1/Services",
+        _MEMORY_STORE_BASE,
         auth=AUTH,
-        json={"uniqueName": "voice-blueprint", "friendlyName": "voice-blueprint memory"},
+        # displayName must match ^[a-zA-Z0-9-]+$ — no underscores, no dots.
+        json={
+            "displayName": "voice-blueprint",
+            "description": "voice-blueprint memory store",
+        },
         timeout=30,
     )
     if r.status_code == 404:
-        # Twilio returns 20404 "resource not found" on POST /v1/Services when
-        # the Conversation Memory product isn't enabled on the account.
-        # Memory is a hard prereq for Orchestrator (which requires
-        # memoryStoreId), so this error short-circuits the rest of the run.
         print(
-            "  SKIP: Conversation Memory not enabled on this account.\n"
-            "  Enable it in the Twilio Console (Products → Conversation Memory)\n"
-            "  or contact your Twilio account team, then re-run provision.py.\n"
+            "  SKIP: Conversation Memory not reachable on this account.\n"
+            "  If this persists after enabling the product in the Twilio\n"
+            "  Console, contact your Twilio account team.\n"
             "  The Orchestrator step will skip downstream.",
             file=sys.stderr,
         )
         return ""
     r.raise_for_status()
-    sid = r.json()["sid"]
-    _write_env("TWILIO_MEMORY_STORE_ID", sid)
+    body = r.json()
+    status_url = body.get("statusUrl")
+    if not status_url:
+        print(f"  WARN: create response missing statusUrl: {body}", file=sys.stderr)
+        return ""
+
+    # Memory Store creation is async — poll statusUrl until ACTIVE.
+    sid = _wait_for_memory_store(status_url)
+    if sid:
+        _write_env("TWILIO_MEMORY_STORE_ID", sid)
     return sid
+
+
+def _wait_for_memory_store(status_url: str, timeout_s: int = 120) -> str:
+    """Poll until the Memory Store reaches ACTIVE. Returns the store id or ""."""
+    import time
+
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        r = httpx.get(status_url, auth=AUTH, timeout=15)
+        if r.status_code != 200:
+            print(f"  statusUrl probe {r.status_code}: {r.text[:200]}", file=sys.stderr)
+            return ""
+        body = r.json()
+        status = body.get("status")
+        sid = body.get("id") or body.get("storeId") or body.get("resource", {}).get("id", "")
+        if status == "ACTIVE" and sid:
+            print(f"  Memory Store ACTIVE: {sid}")
+            return sid
+        if status == "FAILED":
+            print(f"  Memory Store provisioning FAILED: {body}", file=sys.stderr)
+            return ""
+        print(f"  Memory Store status={status}; waiting…")
+        time.sleep(3)
+    print("  Memory Store did not reach ACTIVE within the timeout", file=sys.stderr)
+    return ""
 
 
 def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
