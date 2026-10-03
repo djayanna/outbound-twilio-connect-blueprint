@@ -14,6 +14,22 @@ def store(req: Request) -> JobStore:
 
 @router.post("/jobs", status_code=201)
 async def create_job(job: Job, req: Request):
+    existing = store(req).get_job(job.id)
+    if existing is not None:
+        audit_record(
+            req.app.state.audit_db,
+            AuditEvent(
+                actor="scheduler",
+                action="job.duplicate",
+                subject=job.id,
+                data={"existing_status": existing.status},
+            ),
+        )
+        return {
+            "job": existing.model_dump(by_alias=True),
+            "decision": {"outcome": "duplicate", "reason": "job_id_already_submitted"},
+        }
+
     decision = await accept_job(job, store(req))
     audit_record(
         req.app.state.audit_db,
