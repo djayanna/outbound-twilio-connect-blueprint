@@ -18,6 +18,8 @@ from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import JobRun
 
 from scheduler.config import settings
+from scheduler.fallback.channel import next_channel
+from scheduler.jobs.retry import next_attempt
 from scheduler.jobs.store import JobStore
 
 router = APIRouter()
@@ -120,6 +122,59 @@ def _apply_status(sid: str, raw_status: str, store: JobStore, audit_db, source: 
                 "twilio_status": raw_status,
                 "terminal_reason": terminal_reason,
             },
+        ),
+    )
+
+    if new_status == "failed":
+        _maybe_retry(run, terminal_reason, store, audit_db)
+
+
+def _maybe_retry(
+    run: JobRun, terminal_reason: str | None, store: JobStore, audit_db
+) -> None:
+    """Enqueue a next attempt (optionally on a different channel) if policy allows."""
+    job = store.get_job(run.job_id)
+    if not job:
+        return
+    nxt = next_attempt(job, run)
+    if nxt is None:
+        audit_record(
+            audit_db,
+            AuditEvent(
+                actor="scheduler",
+                action="job.exhausted",
+                subject=job.id,
+                data={"attempts": run.attempt, "terminal_reason": terminal_reason},
+            ),
+        )
+        return
+
+    swap = next_channel(job, terminal_reason)
+    if swap and swap != job.channel:
+        job.channel = swap
+        audit_record(
+            audit_db,
+            AuditEvent(
+                actor="scheduler",
+                action="job.channel_fallback",
+                subject=job.id,
+                data={"from": run.attempt, "to_channel": swap,
+                      "reason": terminal_reason},
+            ),
+        )
+
+    # Promote back to firing — the worker loop picks it up next tick and
+    # dispatches the new attempt.
+    job.status = "firing"
+    store.put_job(job)
+    store.put_run(nxt)
+    audit_record(
+        audit_db,
+        AuditEvent(
+            actor="scheduler",
+            action="run.retry_scheduled",
+            subject=job.id,
+            data={"attempt": nxt.attempt, "channel": job.channel},
         ),
     )
 

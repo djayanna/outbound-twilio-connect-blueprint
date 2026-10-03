@@ -86,11 +86,29 @@ def _has_live_run(store: JobStore, job: Job) -> bool:
     return any(r.status in ("queued", "in-progress") for r in store.runs_for(job.id))
 
 
+def _pending_run(store: JobStore, job: Job) -> JobRun | None:
+    """Return a `pending` retry attempt waiting to be dispatched, if any."""
+    for r in store.runs_for(job.id):
+        if r.status == "pending":
+            return r
+    return None
+
+
 async def _fire(
     job: Job, store: JobStore, audit_db: sqlite3.Connection, caller: AgentCaller
 ) -> None:
-    attempt = len(store.runs_for(job.id)) + 1
-    run = JobRun(job_id=job.id, attempt=attempt, status="queued")
+    pending = _pending_run(store, job)
+    if pending is not None:
+        # Honor the retry backoff: only dispatch when started_at (= scheduled-for) has arrived.
+        if pending.started_at and pending.started_at > datetime.now(UTC):
+            return
+        run = pending
+        run.status = "queued"
+        run.started_at = None
+        attempt = run.attempt
+    else:
+        attempt = len(store.runs_for(job.id)) + 1
+        run = JobRun(job_id=job.id, attempt=attempt, status="queued")
     store.put_run(run)
     audit_record(
         audit_db,
