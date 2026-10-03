@@ -130,7 +130,7 @@ function SingleForm({ onPost }: { onPost: (s: string) => void }) {
         }
         const id = nowId();
         const res = await postJob({ id, channel, to, scheduled_for: "now", scenario, context });
-        onPost(`POST /jobs ${id} → ${res?.decision?.outcome ?? "?"}`);
+        onPost(`POST /jobs ${id} → ${res?.decision?.outcome ?? "?"}${res?.decision?.reason ? ` (${res.decision.reason})` : ""}`);
         setBusy(false);
       }}
     >
@@ -178,7 +178,7 @@ function BatchForm({ onPost }: { onPost: (s: string) => void }) {
         for (const to of list) {
           const id = nowId();
           const res = await postJob({ id, channel, to, scheduled_for: "now", scenario, context: {} });
-          onPost(`POST /jobs ${id} to ${to} → ${res?.decision?.outcome ?? "?"}`);
+          onPost(`POST /jobs ${id} to ${to} → ${res?.decision?.outcome ?? "?"}${res?.decision?.reason ? ` (${res.decision.reason})` : ""}`);
         }
         setBusy(false);
       }}
@@ -227,7 +227,7 @@ function BulkForm({ onPost }: { onPost: (s: string) => void }) {
               const payload = JSON.parse(await f.text());
               for (const job of payload.jobs ?? []) {
                 const res = await postJob(job);
-                onPost(`POST /jobs ${job.id} → ${res?.decision?.outcome ?? "?"}`);
+                onPost(`POST /jobs ${job.id} → ${res?.decision?.outcome ?? "?"}${res?.decision?.reason ? ` (${res.decision.reason})` : ""}`);
               }
             } catch (err) {
               onPost(`bulk upload error: ${(err as Error).message}`);
