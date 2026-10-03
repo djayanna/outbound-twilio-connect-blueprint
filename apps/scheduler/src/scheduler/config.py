@@ -12,6 +12,8 @@ class Settings:
     jobs_db_path: str = os.getenv("JOBS_DB_PATH", "./data/jobs.db")
     agent_connect_url: str = os.getenv("AGENT_CONNECT_URL", "http://localhost:3002")
     default_from: str = os.getenv("TWILIO_PHONE_NUMBER", "")
+    auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    dev_mode: bool = os.getenv("DEV_MODE", "0") == "1"
 
 
 settings = Settings()

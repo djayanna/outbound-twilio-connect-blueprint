@@ -73,6 +73,7 @@ class JobRepository(Protocol):
     def list_jobs(self, status: str | None = None) -> list[Job]: ...
     def put_run(self, run: JobRun) -> None: ...
     def runs_for(self, job_id: str) -> list[JobRun]: ...
+    def run_by_twilio_sid(self, sid: str) -> JobRun | None: ...
     def stats(self) -> dict: ...
 
 
@@ -160,6 +161,18 @@ class SqliteJobRepository:
             (job_id,),
         ).fetchall()
         return [JobRun.model_validate_json(r["payload"]) for r in rows]
+
+    def run_by_twilio_sid(self, sid: str) -> JobRun | None:
+        """Find the JobRun matching a Twilio Call or Message SID. Used by status callbacks."""
+        row = self._conn.execute(
+            """
+            SELECT payload FROM job_runs
+            WHERE twilio_call_sid = ? OR twilio_message_sid = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (sid, sid),
+        ).fetchone()
+        return JobRun.model_validate_json(row["payload"]) if row else None
 
     def stats(self) -> dict:
         by_status: dict[str, int] = defaultdict(int)

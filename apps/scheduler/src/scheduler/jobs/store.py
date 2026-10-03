@@ -27,5 +27,8 @@ class JobStore:
     def runs_for(self, job_id: str) -> list[JobRun]:
         return self._repo.runs_for(job_id)
 
+    def run_by_twilio_sid(self, sid: str) -> JobRun | None:
+        return self._repo.run_by_twilio_sid(sid)
+
     def stats(self) -> dict:
         return self._repo.stats()

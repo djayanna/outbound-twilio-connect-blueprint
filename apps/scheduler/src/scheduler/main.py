@@ -6,7 +6,7 @@ from voice_blueprint_shared.audit import open_audit_db
 from voice_blueprint_shared.otel import init_otel
 
 from scheduler.config import settings
-from scheduler.http import routes
+from scheduler.http import callbacks, routes
 from scheduler.jobs.repository import SqliteJobRepository, open_jobs_db
 from scheduler.jobs.store import JobStore
 from scheduler.worker.loop import run_loop
@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="scheduler", lifespan=lifespan)
 init_otel("scheduler", app=app)
 app.include_router(routes.router)
+app.include_router(callbacks.router)
 
 
 @app.get("/health")

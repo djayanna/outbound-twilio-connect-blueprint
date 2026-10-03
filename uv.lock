@@ -1610,6 +1610,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-multipart"
+version = "0.0.32"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/42/55c32bb9b12693c092ad250a0e82edb5b31ddeda6eb772de5f308b3804ad/python_multipart-0.0.32.tar.gz", hash = "sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e", size = 46881, upload-time = "2026-06-04T16:18:58.647Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/04/e8135ebd1ad02c56ec633277529b2602ff99ff634be76cdba5744cf554fd/python_multipart-0.0.32-py3-none-any.whl", hash = "sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23", size = 30042, upload-time = "2026-06-04T16:18:57.319Z" },
+]
+
+[[package]]
 name = "pytz"
 version = "2026.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1721,7 +1730,9 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "python-dotenv" },
+    { name = "python-multipart" },
     { name = "pytz" },
+    { name = "twilio" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "voice-blueprint-shared" },
 ]
@@ -1731,7 +1742,9 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "pytz", specifier = ">=2024.1" },
+    { name = "twilio", specifier = ">=9.8.3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
     { name = "voice-blueprint-shared", editable = "shared" },
 ]
