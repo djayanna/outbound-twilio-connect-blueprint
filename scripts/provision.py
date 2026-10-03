@@ -192,15 +192,53 @@ def _wait_for_memory_store(status_url: str, timeout_s: int = 120) -> str:
     return ""
 
 
-def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
+def _orchestrator_body(memory_store_id: str, intelligence_config_id: str) -> dict:
+    """Build the Orchestrator Configuration request body.
+
+    Capture rules are what tell Twilio Orchestrator to persist a Call /
+    Message into a Conversation (which is what Memory and Intelligence
+    then process). Without rules, Memory never ingests the transcript
+    and no observations are written. We opt both VOICE and SMS in for
+    traffic to/from our Twilio number.
+    """
+    rules = (
+        [
+            {"from": PHONE, "to": "*", "metadata": {}},
+            {"from": "*", "to": PHONE, "metadata": {}},
+        ]
+        if PHONE
+        else []
+    )
+    body: dict = {
+        "displayName": "voice-blueprint-config",
+        "description": "voice-blueprint orchestrator configuration",
+        "conversationGroupingType": "GROUP_BY_PROFILE",
+        "memoryStoreId": memory_store_id,
+        "memoryExtractionEnabled": True,
+        "channelSettings": {
+            "SMS": {
+                "captureRules": rules,
+                "statusTimeouts": {"inactive": 10, "closed": 60},
+            },
+            # VOICE capture is REQUIRED for Memory extraction. Twilio runs
+            # STT once as part of ConversationRelay; the "double STT"
+            # concern earlier was wrong — capture piggybacks on the
+            # existing transcript.
+            "VOICE": {
+                "captureRules": rules,
+                "statusTimeouts": {"inactive": 10, "closed": 60},
+            },
+        },
+    }
+    if intelligence_config_id:
+        body["intelligenceConfigurationIds"] = [intelligence_config_id]
+    return body
+
+
+def ensure_orchestrator_config(
+    memory_store_id: str, intelligence_config_id: str, force: bool
+) -> str:
     sid = os.getenv("TWILIO_CONVERSATION_CONFIGURATION_ID", "")
-    if (
-        sid
-        and not force
-        and _exists(f"https://conversations.twilio.com/v2/ControlPlane/Configurations/{sid}")
-    ):
-        print(f"reusing Orchestrator Configuration {sid}")
-        return sid
 
     # Twilio's Orchestrator API requires both `description` and
     # `memoryStoreId` (not optional despite what the API-ref table
@@ -215,32 +253,26 @@ def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
         )
         return ""
 
+    body = _orchestrator_body(memory_store_id, intelligence_config_id)
+
+    if sid and not force and _exists(
+        f"https://conversations.twilio.com/v2/ControlPlane/Configurations/{sid}"
+    ):
+        print(f"updating Orchestrator Configuration {sid}…")
+        # PUT re-applies the full body so adding capture rules or
+        # intelligence linkage retroactively works.
+        r = httpx.put(
+            f"https://conversations.twilio.com/v2/ControlPlane/Configurations/{sid}",
+            auth=AUTH,
+            json=body,
+            timeout=30,
+        )
+        r.raise_for_status()
+        return sid
+
     print("creating Orchestrator Configuration…")
     if not PHONE:
         print("  WARN: TWILIO_PHONE_NUMBER not set; capture rules will be left empty")
-
-    body: dict = {
-        "displayName": "voice-blueprint-config",
-        "description": "voice-blueprint orchestrator configuration",
-        "conversationGroupingType": "GROUP_BY_PROFILE",
-        "memoryStoreId": memory_store_id,
-        "memoryExtractionEnabled": True,
-    }
-    body["channelSettings"] = {
-        "SMS": {
-            "captureRules": (
-                [
-                    {"from": PHONE, "to": "*", "metadata": {}},
-                    {"from": "*", "to": PHONE, "metadata": {}},
-                ]
-                if PHONE
-                else []
-            ),
-            "statusTimeouts": {"inactive": 10, "closed": 60},
-        },
-        # VOICE: active TwiML, no capture rules — avoid double STT billing.
-        "VOICE": {"statusTimeouts": {"inactive": 10, "closed": 60}},
-    }
 
     r = httpx.post(
         "https://conversations.twilio.com/v2/ControlPlane/Configurations",
@@ -387,8 +419,9 @@ def main() -> None:
 
     print("voice-blueprint · Twilio provisioning" + (" (--force)" if args.force else ""))
     mem = ensure_memory_store(args.force)
-    ensure_orchestrator_config(mem, args.force)
-    ensure_intelligence_config(args.force)
+    # Intelligence first so we can wire its ID into the Orchestrator Config.
+    intel = ensure_intelligence_config(args.force)
+    ensure_orchestrator_config(mem, intel, args.force)
     sink = ensure_event_streams_sink(args.force)
     ensure_event_streams_subscription(sink, args.force)
     print("done.")
