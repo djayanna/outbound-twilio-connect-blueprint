@@ -19,6 +19,8 @@ class Consent(BaseModel):
 class Constraints(BaseModel):
     allowed_hours_local: tuple[str, str] | None = None
     do_not_contact_before: datetime | None = None
+    # IANA zone (e.g. "America/New_York"). Overrides the number-derived timezone.
+    timezone: str | None = None
 
 
 class RetryPolicy(BaseModel):
