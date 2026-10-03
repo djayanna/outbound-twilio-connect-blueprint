@@ -19,5 +19,7 @@ async def accept_job(job: Job, store: JobStore) -> AcceptanceDecision:
 
     job.status = "scheduled" if job.scheduled_for != "now" else "firing"
     store.put_job(job)
-    # TODO: enqueue for firing; call agent-connect at scheduled_for.
+    # The worker loop (scheduler/worker/loop.py) picks it up from here —
+    # it promotes `scheduled` to `firing` when scheduled_for arrives and
+    # calls agent-connect for `firing` jobs with no live run.
     return AcceptanceDecision(outcome="accepted", reason=None)
