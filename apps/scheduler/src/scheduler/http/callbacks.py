@@ -47,6 +47,35 @@ async def twilio_status(req: Request):
     return {"ok": True}
 
 
+@router.post("/twilio/amd")
+async def twilio_amd(req: Request):
+    """Async AMD callback from Twilio — "who answered?".
+
+    Twilio runs machine detection in parallel with TwiML execution and POSTs
+    the verdict here. If the answerer is a human, we do nothing (the
+    ConversationRelay session is already live). Otherwise we consult the
+    Job's `context.on_machine_answer` policy:
+
+      * "hangup" (default)       — REST-hang up the call, fail the run with
+                                   terminal_reason=voicemail. The channel-
+                                   fallback rule already maps voicemail → SMS.
+      * "leave_voicemail"        — leave the call connected and tag the run
+                                   so the LLM session knows to leave a short
+                                   message (wired in a follow-up commit).
+    """
+    body = await req.body()
+    form = dict((await req.form()).multi_items())
+    _verify_twilio_signature(req, body, form)
+
+    sid = form.get("CallSid")
+    answered_by = form.get("AnsweredBy") or ""
+    if not sid:
+        raise HTTPException(status_code=400, detail="missing CallSid")
+
+    _apply_amd(sid, answered_by, req.app.state.store, req.app.state.audit_db)
+    return {"ok": True}
+
+
 @router.post("/internal/events", dependencies=[Depends(require_api_key)])
 async def internal_event(req: Request):
     """JSON event fan-in from event-ingestor. Loosely-typed by design."""
@@ -129,6 +158,83 @@ def _apply_status(sid: str, raw_status: str, store: JobStore, audit_db, source: 
 
     if new_status == "failed" and job is not None:
         _maybe_retry(job, run, terminal_reason, store, audit_db)
+
+
+# AnsweredBy values Twilio returns on the AMD callback — see
+# https://www.twilio.com/docs/voice/answering-machine-detection
+_HUMAN_ANSWERS = {"human", "unknown"}  # unknown = AMD timed out; treat as human
+_MACHINE_ANSWERS = {
+    "machine_start",
+    "machine_end_beep",
+    "machine_end_silence",
+    "machine_end_other",
+    "fax",
+}
+
+
+def _apply_amd(sid: str, answered_by: str, store: JobStore, audit_db) -> None:
+    run = store.run_by_twilio_sid(sid)
+    if not run:
+        audit_record(
+            audit_db,
+            AuditEvent(actor="twilio-amd", action="run.unmatched", subject=sid,
+                       data={"answered_by": answered_by}),
+        )
+        return
+    job = store.get_job(run.job_id)
+
+    record_and_notify(
+        audit_db,
+        actor="twilio-amd",
+        action="run.amd",
+        job=job,
+        subject=run.job_id,
+        data={"attempt": run.attempt, "sid": sid, "answered_by": answered_by},
+    )
+
+    if answered_by in _HUMAN_ANSWERS or job is None:
+        return
+    if answered_by not in _MACHINE_ANSWERS:
+        return  # unknown bucket — be conservative, do nothing
+
+    policy = (job.context or {}).get("on_machine_answer", "hangup")
+    if policy == "hangup":
+        _hangup_and_fail(sid, run, job, store, audit_db, reason="voicemail")
+    # "leave_voicemail" is handled in a follow-up commit; today it's a no-op
+    # (the LLM session proceeds as if a human picked up).
+
+
+def _hangup_and_fail(
+    sid: str, run: JobRun, job, store: JobStore, audit_db, reason: str,
+) -> None:
+    """Hang up the Twilio call out-of-band and mark the run failed."""
+    try:
+        from twilio.rest import Client
+
+        Client(settings.account_sid, settings.auth_token).calls(sid).update(
+            status="completed"
+        )
+    except Exception as exc:  # best-effort; the run.failed audit still fires
+        audit_record(
+            audit_db,
+            AuditEvent(actor="scheduler", action="run.hangup_failed",
+                       subject=run.job_id,
+                       data={"sid": sid, "error": str(exc)}),
+        )
+
+    run.status = "failed"
+    run.terminal_reason = reason
+    run.ended_at = _now()
+    store.put_run(run)
+    record_and_notify(
+        audit_db,
+        actor="scheduler",
+        action="run.failed",
+        job=job,
+        subject=run.job_id,
+        data={"attempt": run.attempt, "sid": sid, "terminal_reason": reason},
+    )
+    _maybe_retry(job, run, reason, store, audit_db)
 
 
 def _maybe_retry(

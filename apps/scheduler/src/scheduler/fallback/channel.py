@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from voice_blueprint_shared.job import Job
 
-_VOICE_SMS_FALLBACK_REASONS = {"no-answer", "busy", "failed", "canceled"}
+_VOICE_SMS_FALLBACK_REASONS = {"no-answer", "busy", "failed", "canceled", "voicemail"}
 
 
 def next_channel(job: Job, terminal_reason: str | None) -> str | None:
