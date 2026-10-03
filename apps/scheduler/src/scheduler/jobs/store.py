@@ -1,41 +1,31 @@
-from collections import defaultdict
-from threading import Lock
+"""Thin facade over JobRepository.
 
+Kept as `JobStore` so existing callers (routes, lifecycle, future worker) don't
+move. The methods mirror what the in-memory store used to offer.
+"""
 from voice_blueprint_shared.job import Job, JobRun
+
+from scheduler.jobs.repository import JobRepository
 
 
 class JobStore:
-    """In-memory store. Swap for sqlite/postgres in prod."""
-
-    def __init__(self) -> None:
-        self._jobs: dict[str, Job] = {}
-        self._runs: dict[str, list[JobRun]] = defaultdict(list)
-        self._lock = Lock()
+    def __init__(self, repo: JobRepository) -> None:
+        self._repo = repo
 
     def put_job(self, job: Job) -> None:
-        with self._lock:
-            self._jobs[job.id] = job
+        self._repo.upsert_job(job)
 
     def get_job(self, job_id: str) -> Job | None:
-        return self._jobs.get(job_id)
+        return self._repo.get_job(job_id)
 
     def list_jobs(self, status: str | None = None) -> list[Job]:
-        if status is None:
-            return list(self._jobs.values())
-        return [j for j in self._jobs.values() if j.status == status]
+        return self._repo.list_jobs(status=status)
 
     def put_run(self, run: JobRun) -> None:
-        with self._lock:
-            self._runs[run.job_id].append(run)
+        self._repo.put_run(run)
 
     def runs_for(self, job_id: str) -> list[JobRun]:
-        return list(self._runs.get(job_id, []))
+        return self._repo.runs_for(job_id)
 
     def stats(self) -> dict:
-        by_status: dict[str, int] = defaultdict(int)
-        for j in self._jobs.values():
-            by_status[j.status] += 1
-        in_flight = sum(
-            1 for runs in self._runs.values() for r in runs if r.status == "in-progress"
-        )
-        return {"jobs_by_status": dict(by_status), "runs_in_flight": in_flight}
+        return self._repo.stats()
