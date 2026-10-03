@@ -9,6 +9,8 @@ from scheduler.config import settings
 from scheduler.http import callbacks, routes
 from scheduler.jobs.repository import SqliteJobRepository, open_jobs_db
 from scheduler.jobs.store import JobStore
+from scheduler.policy.dnc_repository import SqliteDncRepository
+from scheduler.policy.suppression import set_dnc_repository
 from scheduler.worker.loop import run_loop
 
 
@@ -17,6 +19,8 @@ async def lifespan(app: FastAPI):
     app.state.audit_db = open_audit_db(settings.audit_db_path)
     app.state.jobs_db = open_jobs_db(settings.jobs_db_path)
     app.state.store = JobStore(SqliteJobRepository(app.state.jobs_db))
+    app.state.dnc = SqliteDncRepository(app.state.jobs_db)
+    set_dnc_repository(app.state.dnc)
     app.state.worker_stop = asyncio.Event()
     app.state.worker_task = asyncio.create_task(
         run_loop(app.state.store, app.state.audit_db, stop_event=app.state.worker_stop),
