@@ -251,6 +251,7 @@ def ensure_intelligence_config(force: bool) -> str:
         auth=AUTH,
         json={
             "displayName": "voice-blueprint-intelligence",
+            "description": "voice-blueprint intelligence configuration",
             # All operators fire at CONVERSATION_END — i.e. post-call. Switch
             # specific rules to TRANSCRIPT_SEGMENT if you want real-time
             # agent-assist / live compliance signals.
