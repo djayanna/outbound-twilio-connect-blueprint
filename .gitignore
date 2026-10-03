@@ -127,6 +127,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Node / Vite UIs
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
 # Environments
 .env
 .venv
