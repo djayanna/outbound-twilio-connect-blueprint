@@ -17,6 +17,7 @@ class Settings:
     memory_store_id: str = os.getenv("TWILIO_MEMORY_STORE_ID", "")
     conversation_configuration_id: str = os.getenv("TWILIO_CONVERSATION_CONFIGURATION_ID", "")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
 settings = Settings()
