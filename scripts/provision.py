@@ -47,6 +47,20 @@ ENV_PATH = Path(".env")
 # https://events.twilio.com/v1/Types and in the Twilio console.
 # If a type is rejected (unknown name / wrong version), the subscribe
 # step logs the error and bails without wedging the earlier steps.
+# Twilio-authored (prebuilt) operators we attach to the Intelligence Config.
+# Catalog: https://www.twilio.com/docs/conversations/intelligence/use-twilio-authored-language-operators
+#
+# To add a *custom* operator (e.g. a consent-capture operator you define in
+# the Twilio console), paste its SID below alongside the prebuilt ones; the
+# shape is the same.
+INTELLIGENCE_OPERATORS: list[str] = [
+    # Summary — post-call human-readable summary. 3–5 sentences by default.
+    "intelligence_operator_01kcv35pnkeysaf6z6cqtbpegn",
+    # Sentiment — positive / negative / neutral / mixed on the full conversation.
+    "intelligence_operator_01kcrvw16kfa88qvgrfmr7y151",
+]
+
+
 SUBSCRIPTION_TYPES: list[dict] = [
     # Voice call lifecycle — redundant with the per-call statusCallback the
     # scheduler already receives, but useful as a backchannel + for calls
@@ -172,12 +186,12 @@ def ensure_intelligence_config(force: bool) -> str:
         auth=AUTH,
         json={
             "displayName": "voice-blueprint-intelligence",
+            # All operators fire at CONVERSATION_END — i.e. post-call. Switch
+            # specific rules to TRANSCRIPT_SEGMENT if you want real-time
+            # agent-assist / live compliance signals.
             "rules": [
                 {
-                    "operators": [
-                        # Twilio-authored Summary — fires at CONVERSATION_END
-                        {"id": "intelligence_operator_01kcv35pnkeysaf6z6cqtbpegn"}
-                    ],
+                    "operators": [{"id": op} for op in INTELLIGENCE_OPERATORS],
                     "triggers": [{"on": "CONVERSATION_END"}],
                     "actions": [],
                 }

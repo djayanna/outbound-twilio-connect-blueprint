@@ -50,7 +50,21 @@ The script writes updated keys back into `.env`. If a line is already there, it'
 
 ## Intelligence Configuration details
 
-One rule, with the Twilio-authored `Summary` operator wired to fire at `CONVERSATION_END`. Add your own operators (sentiment, consent-capture, intent, etc.) by appending to the `operators` array.
+One rule, firing at `CONVERSATION_END` (post-call), with two Twilio-authored operators:
+
+| Operator | SID | What you get |
+|---|---|---|
+| **Summary** | `intelligence_operator_01kcv35pnkeysaf6z6cqtbpegn` | 3–5 sentence human-readable summary. Populates the Inspector panel in the test-harness. |
+| **Sentiment** | `intelligence_operator_01kcrvw16kfa88qvgrfmr7y151` | `positive` / `negative` / `neutral` / `mixed` on the full conversation. |
+
+Edit `INTELLIGENCE_OPERATORS` at the top of `scripts/provision.py` to add more. Twilio also publishes:
+
+- Script Adherence (`intelligence_operator_01kf34tcyefpyb1t4m0nbd8rxg`) — real-time, pair with `TRANSCRIPT_SEGMENT`.
+- Next Best Response (`intelligence_operator_01kea27sy7ffsafmtsfp17nzx4`) — agent-assist.
+
+For **consent capture, intent extraction, or payment-commitment detection**, create a **custom operator** in the Twilio console → Conversation Intelligence → Operators, copy its SID (format `intelligence_operator_*` or classic `LY*`), and paste it into `INTELLIGENCE_OPERATORS`. The shape is identical to prebuilt operators.
+
+Operator results arrive at event-ingestor as `com.twilio.intelligence.operator-result.created` events (already in `SUBSCRIPTION_TYPES`) and are forwarded to the scheduler's `/internal/events`, which audits them. The test-harness Inspector surfaces any audit entry whose `action` contains `operator-result` under its "intelligence" block.
 
 ## Event Streams sink + subscription
 
