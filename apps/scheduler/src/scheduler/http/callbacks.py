@@ -183,6 +183,11 @@ def _apply_amd(sid: str, answered_by: str, store: JobStore, audit_db) -> None:
         return
     job = store.get_job(run.job_id)
 
+    # Record the verdict on the run so agent-connect can pick it up before
+    # the first LLM turn (via GET /runs/by-sid/{sid}).
+    run.answered_by = answered_by
+    store.put_run(run)
+
     record_and_notify(
         audit_db,
         actor="twilio-amd",
@@ -200,8 +205,9 @@ def _apply_amd(sid: str, answered_by: str, store: JobStore, audit_db) -> None:
     policy = (job.context or {}).get("on_machine_answer", "hangup")
     if policy == "hangup":
         _hangup_and_fail(sid, run, job, store, audit_db, reason="voicemail")
-    # "leave_voicemail" is handled in a follow-up commit; today it's a no-op
-    # (the LLM session proceeds as if a human picked up).
+    # "leave_voicemail" leaves the CR session connected; agent-connect's
+    # on_message_ready reads run.answered_by + job.context on the first
+    # turn and switches the system prompt to a voicemail persona.
 
 
 def _hangup_and_fail(

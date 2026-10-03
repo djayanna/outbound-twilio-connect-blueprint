@@ -21,12 +21,23 @@ class Scenario:
     system_prompt: str
     sms_template: str
     voice_welcome: str
+    # Only used when `job.context.on_machine_answer == "leave_voicemail"` and
+    # Twilio AMD says a machine picked up. Should instruct the model to leave
+    # ONE sentence and end — not try to have a conversation with the beep.
+    voicemail_prompt: str | None = None
 
 
 _BASE_STYLE = (
     "Keep responses short and conversational — a sentence or two. "
     "Do not use markdown, asterisks, bullets, or emojis; your words will "
     "be spoken aloud or sent as plain text."
+)
+
+_VOICEMAIL_STYLE = (
+    "You are leaving a brief voicemail — the recipient is NOT on the line. "
+    "Say one short sentence stating who you are and why you called, then stop. "
+    "Do not ask questions. Do not say 'hello', 'is anyone there', or wait "
+    "for a response. End with a clear sign-off."
 )
 
 
@@ -47,6 +58,10 @@ _SCENARIOS: dict[str, Scenario] = {
             "Hi, I'm calling about your upcoming appointment. "
             "Is now a good time to confirm?"
         ),
+        voicemail_prompt=(
+            "Leave a voicemail reminding the recipient about their appointment "
+            "and asking them to call back to confirm. " + _VOICEMAIL_STYLE
+        ),
     ),
     "payment-reminder": Scenario(
         key="payment-reminder",
@@ -63,6 +78,11 @@ _SCENARIOS: dict[str, Scenario] = {
         voice_welcome=(
             "Hi, I'm calling about an outstanding balance on your account. "
             "Do you have a moment to review it?"
+        ),
+        voicemail_prompt=(
+            "Leave a voicemail noting there is an outstanding balance on "
+            "the account and asking the recipient to call back. Do NOT state "
+            "the amount or any account details. " + _VOICEMAIL_STYLE
         ),
     ),
     "promotion": Scenario(
@@ -97,6 +117,17 @@ def get(key: str) -> Scenario:
     return _SCENARIOS.get(key, DEFAULT)
 
 
+def voicemail_prompt_for(key: str) -> str:
+    """Return the scenario's voicemail persona, or a generic fallback."""
+    scenario = get(key)
+    if scenario.voicemail_prompt:
+        return scenario.voicemail_prompt
+    return (
+        "Leave a brief voicemail saying this is a follow-up and asking the "
+        "recipient to call back when convenient. " + _VOICEMAIL_STYLE
+    )
+
+
 def render_sms(key: str, context: dict) -> str:
     """Render the SMS body for a scenario, substituting {context} placeholders.
 
@@ -113,4 +144,11 @@ def render_sms(key: str, context: dict) -> str:
 # For back-compat with any lingering imports; now unused by TAC-based handlers.
 SYSTEM_INSTRUCTIONS = DEFAULT.system_prompt
 
-__all__ = ["Scenario", "DEFAULT", "get", "render_sms", "SYSTEM_INSTRUCTIONS"]
+__all__ = [
+    "Scenario",
+    "DEFAULT",
+    "get",
+    "render_sms",
+    "voicemail_prompt_for",
+    "SYSTEM_INSTRUCTIONS",
+]

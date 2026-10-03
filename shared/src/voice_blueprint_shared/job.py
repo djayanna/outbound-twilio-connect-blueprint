@@ -57,3 +57,6 @@ class JobRun(BaseModel):
     started_at: datetime | None = None
     ended_at: datetime | None = None
     terminal_reason: str | None = None
+    # AMD verdict for voice runs; agent-connect reads this to decide whether
+    # to behave as "live conversation" or "leaving a voicemail."
+    answered_by: str | None = None

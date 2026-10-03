@@ -22,6 +22,15 @@ Enforced in `scheduler/policy/quiet_hours.py`. Timezone is resolved from the rec
 
 Both writes audit as `dnc.added` / `dnc.removed`. All three are gated by `X-Blueprint-Key`.
 
+## Answering Machine Detection (AMD)
+
+Every outbound voice call ships with Twilio AMD enabled. When a machine picks up, the behavior is per-Job via `context.on_machine_answer`:
+
+- `"hangup"` (default) — scheduler hangs up the call, marks the run `failed` with `terminal_reason=voicemail`, and the fallback engine queues an SMS attempt automatically. **Pick this when you cannot leave AI-generated voicemails under your jurisdiction's rules** (TCPA interpretations vary — many legal teams insist AI voicemails are "artificial or prerecorded voice" and require prior express written consent to leave).
+- `"leave_voicemail"` — scheduler tags the run with the AMD verdict; agent-connect's `on_message_ready` swaps the scenario's conversational system prompt for a one-sentence voicemail persona (`voicemail_prompt_for(scenario)` in `agent_connect/prompts/__init__.py`). Tools are disabled during voicemail turns. **Confirm with your compliance team before enabling.**
+
+`unknown` (AMD timeout) is treated as `human` — ConversationRelay proceeds normally.
+
 ## PCI DSS
 
 **ConversationRelay is used in modes compatible with PCI patterns** — audio never flows through our process; it's handled by Twilio's media layer. The sample scenarios **do not** capture payment card details. For a scenario that does, use Twilio `<Pay>` or `<Gather partialResultCallback>` with proper DTMF redaction configured on the Twilio side; do not route card data through the LLM.

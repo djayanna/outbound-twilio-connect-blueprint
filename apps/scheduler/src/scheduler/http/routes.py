@@ -87,6 +87,19 @@ def get_run(run_id: int, req: Request):
     return {"run": run.model_dump()}
 
 
+@router.get("/runs/by-sid/{sid}")
+def get_run_by_sid(sid: str, req: Request):
+    """Lookup used by agent-connect before each LLM turn to pick up the AMD verdict."""
+    run = store(req).run_by_twilio_sid(sid)
+    if not run:
+        raise HTTPException(404, "run not found")
+    job = store(req).get_job(run.job_id)
+    return {
+        "run": run.model_dump(),
+        "job": job.model_dump(by_alias=True) if job else None,
+    }
+
+
 @router.get("/stats")
 def stats(req: Request):
     return store(req).stats()

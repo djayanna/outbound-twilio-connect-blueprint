@@ -19,6 +19,9 @@ class Settings:
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     scheduler_public_url: str = os.getenv("SCHEDULER_PUBLIC_URL", "")
+    # Internal URL used to fetch the AMD verdict / job context mid-call.
+    # Defaults to the inter-service URL (localhost in dev, service DNS in compose).
+    scheduler_internal_url: str = os.getenv("SCHEDULER_URL", "http://localhost:3001")
 
 
 settings = Settings()

@@ -86,3 +86,32 @@ def test_amd_unmatched_sid_audited(client):
         if e["subject"] == "CA_nope"
     ]
     assert "run.unmatched" in actions
+
+
+def test_machine_answer_leave_voicemail_policy(client):
+    """on_machine_answer=leave_voicemail → no hangup; run tagged with answered_by."""
+    client.post(
+        "/jobs",
+        json=_voice(id="j-amd-vm", context={"on_machine_answer": "leave_voicemail"}),
+    )
+    _wait_for_run(client, "j-amd-vm")
+    client.post("/twilio/amd", data={"CallSid": "CA_amd", "AnsweredBy": "machine_end_beep"})
+    detail = client.get("/jobs/j-amd-vm").json()
+    assert detail["job"]["channel"] == "voice"  # no fallback
+    run = detail["runs"][0]
+    assert run["status"] == "queued"  # untouched
+    assert run["terminal_reason"] is None
+    assert run["answered_by"] == "machine_end_beep"
+
+
+def test_runs_by_sid_lookup(client):
+    """agent-connect polls this endpoint on each turn to pick up the AMD verdict."""
+    client.post("/jobs", json=_voice(id="j-sid"))
+    _wait_for_run(client, "j-sid")
+    r = client.get("/runs/by-sid/CA_amd")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["run"]["job_id"] == "j-sid"
+    assert body["job"]["id"] == "j-sid"
+    # 404 on unknown
+    assert client.get("/runs/by-sid/CA_nope").status_code == 404
