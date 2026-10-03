@@ -120,15 +120,14 @@ def ensure_memory_store(force: bool) -> str:
     )
     if r.status_code == 404:
         # Twilio returns 20404 "resource not found" on POST /v1/Services when
-        # the Conversation Memory product isn't enabled on the account. The
-        # rest of the blueprint (scheduler, retry/fallback, AMD, Intelligence)
-        # works fine without Memory; log a clear pointer and continue.
+        # the Conversation Memory product isn't enabled on the account.
+        # Memory is a hard prereq for Orchestrator (which requires
+        # memoryStoreId), so this error short-circuits the rest of the run.
         print(
             "  SKIP: Conversation Memory not enabled on this account.\n"
             "  Enable it in the Twilio Console (Products → Conversation Memory)\n"
             "  or contact your Twilio account team, then re-run provision.py.\n"
-            "  Downstream steps (Orchestrator, Intelligence, Event Streams)\n"
-            "  will proceed without a memory_store_id.",
+            "  The Orchestrator step will skip downstream.",
             file=sys.stderr,
         )
         return ""
@@ -148,23 +147,30 @@ def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
         print(f"reusing Orchestrator Configuration {sid}")
         return sid
 
+    # Twilio's Orchestrator API requires both `description` and
+    # `memoryStoreId` (not optional despite what the API-ref table
+    # implies). Abort cleanly if we have no Memory Store SID.
+    if not memory_store_id:
+        print(
+            "  SKIP: cannot create Orchestrator Configuration without "
+            "TWILIO_MEMORY_STORE_ID.\n"
+            "  Enable Conversation Memory on the account and re-run "
+            "provision.py, or set TWILIO_MEMORY_STORE_ID manually in .env.",
+            file=sys.stderr,
+        )
+        return ""
+
     print("creating Orchestrator Configuration…")
     if not PHONE:
         print("  WARN: TWILIO_PHONE_NUMBER not set; capture rules will be left empty")
 
     body: dict = {
         "displayName": "voice-blueprint-config",
+        "description": "voice-blueprint orchestrator configuration",
         "conversationGroupingType": "GROUP_BY_PROFILE",
-        "channelSettings": {},
+        "memoryStoreId": memory_store_id,
+        "memoryExtractionEnabled": True,
     }
-    # Only attach Memory when the account has it enabled — otherwise
-    # Orchestrator rejects memoryStoreId with its own 404.
-    if memory_store_id:
-        body["memoryStoreId"] = memory_store_id
-        body["memoryExtractionEnabled"] = True
-    else:
-        print("  (no memory_store_id — creating configuration without Memory)")
-
     body["channelSettings"] = {
         "SMS": {
             "captureRules": (
