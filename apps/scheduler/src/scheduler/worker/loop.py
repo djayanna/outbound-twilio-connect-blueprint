@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import Job, JobRun
 
+from scheduler.config import settings
 from scheduler.jobs.store import JobStore
 from scheduler.outbound.agent_client import initiate_outbound
 
@@ -62,8 +63,12 @@ async def _tick(store: JobStore, audit_db: sqlite3.Connection, caller: AgentCall
             job.status = "firing"
             store.put_job(job)
 
+    cap = settings.concurrency_per_scenario
     for job in store.list_jobs(status="firing"):
         if _has_live_run(store, job):
+            continue
+        if cap > 0 and store.concurrency_count(job.scenario) >= cap:
+            # Deferred — leave status=firing, pick up next tick when a slot frees.
             continue
         await _fire(job, store, audit_db, caller)
 

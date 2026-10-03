@@ -14,6 +14,8 @@ class Settings:
     default_from: str = os.getenv("TWILIO_PHONE_NUMBER", "")
     auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     dev_mode: bool = os.getenv("DEV_MODE", "0") == "1"
+    dedupe_window_seconds: int = int(os.getenv("DEDUPE_WINDOW_SECONDS", "3600"))
+    concurrency_per_scenario: int = int(os.getenv("CONCURRENCY_PER_SCENARIO", "10"))
 
 
 settings = Settings()

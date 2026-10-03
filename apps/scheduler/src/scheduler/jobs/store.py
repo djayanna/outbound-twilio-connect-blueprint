@@ -38,5 +38,11 @@ class JobStore:
     def get_run(self, run_id: int) -> JobRun | None:
         return self._repo.get_run(run_id)
 
+    def dedupe_claim(self, scenario, to_number, job_id, window_ends_at):
+        return self._repo.dedupe_claim(scenario, to_number, job_id, window_ends_at)
+
+    def concurrency_count(self, scenario: str) -> int:
+        return self._repo.concurrency_count(scenario)
+
     def stats(self) -> dict:
         return self._repo.stats()

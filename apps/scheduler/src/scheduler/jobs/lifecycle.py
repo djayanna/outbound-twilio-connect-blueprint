@@ -11,7 +11,7 @@ class AcceptanceDecision(BaseModel):
 
 
 async def accept_job(job: Job, store: JobStore) -> AcceptanceDecision:
-    verdict = check_all(job)
+    verdict = check_all(job, store)
     if verdict.suppress:
         job.status = "cancelled"
         store.put_job(job)

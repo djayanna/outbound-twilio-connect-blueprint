@@ -50,6 +50,15 @@ CREATE INDEX IF NOT EXISTS idx_runs_job     ON job_runs(job_id);
 CREATE INDEX IF NOT EXISTS idx_runs_status  ON job_runs(status);
 CREATE INDEX IF NOT EXISTS idx_runs_call    ON job_runs(twilio_call_sid);
 CREATE INDEX IF NOT EXISTS idx_runs_message ON job_runs(twilio_message_sid);
+
+CREATE TABLE IF NOT EXISTS dedupe_keys (
+    scenario       TEXT NOT NULL,
+    to_number      TEXT NOT NULL,
+    job_id         TEXT NOT NULL,
+    window_ends_at TEXT NOT NULL,
+    PRIMARY KEY (scenario, to_number)
+);
+CREATE INDEX IF NOT EXISTS idx_dedupe_window ON dedupe_keys(window_ends_at);
 """
 
 
@@ -78,6 +87,10 @@ class JobRepository(Protocol):
         self, job_id: str | None = None, status: str | None = None, limit: int = 200
     ) -> list[JobRun]: ...
     def get_run(self, run_id: int) -> JobRun | None: ...
+    def dedupe_claim(
+        self, scenario: str, to_number: str, job_id: str, window_ends_at: datetime
+    ) -> str | None: ...
+    def concurrency_count(self, scenario: str) -> int: ...
     def stats(self) -> dict: ...
 
 
@@ -202,6 +215,51 @@ class SqliteJobRepository:
             "SELECT payload FROM job_runs WHERE id = ?", (run_id,)
         ).fetchone()
         return JobRun.model_validate_json(row["payload"]) if row else None
+
+    def dedupe_claim(
+        self, scenario: str, to_number: str, job_id: str, window_ends_at: datetime
+    ) -> str | None:
+        """Try to claim (scenario, to_number) until `window_ends_at`.
+
+        Returns None on success (first claim or expired window reclaimed),
+        or the job_id currently holding the slot on conflict. Idempotent:
+        the same job_id re-claiming its own slot returns None.
+        """
+        now_iso = _utc_now_iso()
+        # Clear any expired claim for this key.
+        self._conn.execute(
+            "DELETE FROM dedupe_keys WHERE scenario=? AND to_number=? AND window_ends_at<=?",
+            (scenario, to_number, now_iso),
+        )
+        try:
+            self._conn.execute(
+                """
+                INSERT INTO dedupe_keys (scenario, to_number, job_id, window_ends_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (scenario, to_number, job_id, window_ends_at.isoformat()),
+            )
+            return None
+        except sqlite3.IntegrityError:
+            row = self._conn.execute(
+                "SELECT job_id FROM dedupe_keys WHERE scenario=? AND to_number=?",
+                (scenario, to_number),
+            ).fetchone()
+            if row and row["job_id"] == job_id:
+                return None  # same submitter — idempotent
+            return row["job_id"] if row else None
+
+    def concurrency_count(self, scenario: str) -> int:
+        """Count runs currently in-flight for a scenario."""
+        row = self._conn.execute(
+            """
+            SELECT COUNT(*) AS n FROM job_runs r
+            JOIN jobs j ON j.id = r.job_id
+            WHERE j.scenario = ? AND r.status IN ('queued','in-progress')
+            """,
+            (scenario,),
+        ).fetchone()
+        return int(row["n"] or 0)
 
     def stats(self) -> dict:
         by_status: dict[str, int] = defaultdict(int)
