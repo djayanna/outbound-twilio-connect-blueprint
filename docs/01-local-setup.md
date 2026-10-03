@@ -31,13 +31,15 @@ uv run python scripts/provision.py
 ngrok start --all --config ngrok.yml
 ```
 
-Update `.env` with the two ngrok hostnames:
+Update `.env` with the three ngrok hostnames (agent-connect, scheduler, event-ingestor):
 
 ```
-TWILIO_VOICE_PUBLIC_DOMAIN=xxxx.ngrok.app
-EVENT_INGESTOR_PUBLIC_URL=https://yyyy.ngrok.app
-SCHEDULER_PUBLIC_URL=https://zzzz.ngrok.app
+TWILIO_VOICE_PUBLIC_DOMAIN=xxxx.ngrok.app       # no scheme — code adds https://
+SCHEDULER_PUBLIC_URL=https://yyyy.ngrok.app     # with scheme
+EVENT_INGESTOR_PUBLIC_URL=https://zzzz.ngrok.app
 ```
+
+Free-tier ngrok rotates these hostnames on every restart. If the URLs change, update `.env` AND re-run `scripts/provision.py` — the Event Streams sink's destination URL is baked in at creation time, so a URL change makes it stale.
 
 ## Boot
 
