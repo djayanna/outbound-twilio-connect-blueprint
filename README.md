@@ -26,7 +26,7 @@ make up                          # docker compose up -d --build
 
 - [`docs/00-overview.md`](docs/00-overview.md) — architecture + request lifecycle
 - [`docs/01-local-setup.md`](docs/01-local-setup.md) — clone to first Job
-- [`docs/02-twilio-provisioning.md`](docs/02-twilio-provisioning.md) — what the provision script does
+- [`docs/02-twilio-provisioning.md`](docs/02-twilio-provisioning.md) — what the provision script does (Memory, Orchestrator, Intelligence, Event Streams sink + subscription)
 - [`docs/03-deployment.md`](docs/03-deployment.md) — Docker / ingress / prod checklist
 - [`docs/04-compliance.md`](docs/04-compliance.md) — TCPA, consent, DNC, PCI, HIPAA
 - [`docs/05-troubleshooting.md`](docs/05-troubleshooting.md) — common failure modes

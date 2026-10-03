@@ -5,14 +5,17 @@ Resources created:
   - Orchestrator Configuration (conversations.twilio.com/v2)
   - Intelligence Configuration (intelligence.twilio.com/v3)
   - Event Streams webhook sink → EVENT_INGESTOR_PUBLIC_URL
+  - Event Streams Subscription linking the sink to the event types the
+    event-ingestor filters on
 
 Usage:
   uv run python scripts/provision.py
 
-See docs/03-twilio-provisioning.md for prerequisites.
+See docs/02-twilio-provisioning.md for prerequisites.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -29,6 +32,31 @@ EVENT_INGESTOR_PUBLIC_URL = os.environ.get("EVENT_INGESTOR_PUBLIC_URL", "")
 
 AUTH = (ACCOUNT_SID, AUTH_TOKEN)
 ENV_PATH = Path(".env")
+
+
+# Event types the ingestor's routing table filters on. Each entry is
+# {type, schema_version}; schema versions move slowly and are listed at
+# https://events.twilio.com/v1/Types and in the Twilio console.
+# If a type is rejected (unknown name / wrong version), the subscribe
+# step logs the error and continues with the rest — tweak this list
+# instead of hunting the error down.
+SUBSCRIPTION_TYPES: list[dict] = [
+    # Voice call lifecycle — redundant with the per-call statusCallback the
+    # scheduler already receives, but useful as a backchannel + for calls
+    # that bypass our outbound (e.g. inbound).
+    {"type": "com.twilio.voice.status-callback.call.initiated", "schema_version": 1},
+    {"type": "com.twilio.voice.status-callback.call.ringing", "schema_version": 1},
+    {"type": "com.twilio.voice.status-callback.call.answered", "schema_version": 1},
+    {"type": "com.twilio.voice.status-callback.call.completed", "schema_version": 1},
+    # Messaging delivery status — same story as voice.
+    {"type": "com.twilio.messaging.message.sent", "schema_version": 1},
+    {"type": "com.twilio.messaging.message.delivered", "schema_version": 1},
+    {"type": "com.twilio.messaging.message.undelivered", "schema_version": 1},
+    {"type": "com.twilio.messaging.message.failed", "schema_version": 1},
+    # Intelligence operator result — ONLY arrives via Event Streams; this
+    # is why the subscription matters even if you ignore voice/SMS above.
+    {"type": "com.twilio.intelligence.operator-result.created", "schema_version": 1},
+]
 
 
 def _write_env(key: str, value: str) -> None:
@@ -147,12 +175,56 @@ def create_event_streams_sink() -> str:
     return sid
 
 
+def create_event_streams_subscription(sink_sid: str) -> str:
+    """Link the sink to the event types we care about.
+
+    A sink with no subscriptions receives nothing — this step is what
+    actually makes events flow. Twilio accepts `Types` as a repeated form
+    field; each is a JSON object with `type` and `schema_version`.
+    """
+    if not sink_sid:
+        print("skipping Event Streams subscription — no sink to attach")
+        return ""
+    print("creating Event Streams subscription…")
+    # Repeated `Types` form field — one entry per subscribed event type.
+    # httpx accepts list[tuple[str, str]] at runtime for this; typeshed is
+    # narrower, hence the cast.
+    from typing import cast
+
+    data: list[tuple[str, str]] = [
+        ("Description", "voice-blueprint"),
+        ("SinkSid", sink_sid),
+        *(("Types", json.dumps(t)) for t in SUBSCRIPTION_TYPES),
+    ]
+    r = httpx.post(
+        "https://events.twilio.com/v1/Subscriptions",
+        auth=AUTH,
+        data=cast("dict", data),
+        timeout=30,
+    )
+    if r.status_code >= 400:
+        # Partial failure — print the body and bail cleanly so operators can
+        # fix the Types list without re-running the whole script.
+        print(
+            f"  subscription create failed: {r.status_code} {r.text}\n"
+            "  (unknown type names or wrong schema_version are the usual cause;\n"
+            "  inspect https://events.twilio.com/v1/Types to reconcile and "
+            "edit SUBSCRIPTION_TYPES in scripts/provision.py)",
+            file=sys.stderr,
+        )
+        return ""
+    sid = r.json()["sid"]
+    _write_env("TWILIO_EVENT_STREAMS_SUBSCRIPTION_SID", sid)
+    return sid
+
+
 def main() -> None:
     print("voice-blueprint · Twilio provisioning")
     mem = create_memory_store()
     create_orchestrator_config(mem)
     create_intelligence_config()
-    create_event_streams_sink()
+    sink = create_event_streams_sink()
+    create_event_streams_subscription(sink)
     print("done.")
 
 

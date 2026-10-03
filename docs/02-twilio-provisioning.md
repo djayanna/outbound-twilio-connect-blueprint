@@ -10,6 +10,7 @@
 | Orchestrator Configuration | Conversation Orchestrator | `TWILIO_CONVERSATION_CONFIGURATION_ID` |
 | Intelligence Configuration | Conversation Intelligence | `TWILIO_INTELLIGENCE_CONFIGURATION_ID` |
 | Event Streams webhook sink | Event Streams | `TWILIO_EVENT_STREAMS_SINK_SID` |
+| Event Streams subscription | Event Streams | `TWILIO_EVENT_STREAMS_SUBSCRIPTION_SID` |
 
 Phone number is **not** created — buy one in the Twilio console and set `TWILIO_PHONE_NUMBER` yourself. Inbound SMS/voice webhooks on that number should point at agent-connect (`https://${TWILIO_VOICE_PUBLIC_DOMAIN}/twiml` for voice, `/sms` for SMS — both mounted by TAC).
 
@@ -42,6 +43,19 @@ The script writes updated keys back into `.env`. If a line is already there, it'
 
 One rule, with the Twilio-authored `Summary` operator wired to fire at `CONVERSATION_END`. Add your own operators (sentiment, consent-capture, intent, etc.) by appending to the `operators` array.
 
-## Event Streams sink
+## Event Streams sink + subscription
 
-JSON webhook sink pointing at `${EVENT_INGESTOR_PUBLIC_URL}/twilio/events` with `batch_events: true`. The signature over the body is HMAC-SHA1 over just the URL — see [`event_ingestor/validation.py`](../apps/event_ingestor/src/event_ingestor/validation.py) for how we verify.
+Twilio Event Streams is a two-step model:
+
+1. **Sink** — where events go. We create a JSON webhook sink pointing at `${EVENT_INGESTOR_PUBLIC_URL}/twilio/events` with `batch_events: true`. The signature over the body is HMAC-SHA1 over just the URL — see [`event_ingestor/validation.py`](../apps/event_ingestor/src/event_ingestor/validation.py) for how we verify.
+2. **Subscription** — *which event types* flow into the sink. A sink with no subscription receives nothing.
+
+The subscribed types match what [`event_ingestor/routing.py`](../apps/event_ingestor/src/event_ingestor/routing.py) filters on:
+
+| Family | Why we subscribe |
+|---|---|
+| `com.twilio.voice.status-callback.call.*` (initiated / ringing / answered / completed) | Backchannel for the voice lifecycle. The scheduler also receives these via the per-call `statusCallback`; Event Streams covers inbound and ad-hoc calls that bypass our outbound path. |
+| `com.twilio.messaging.message.*` (sent / delivered / undelivered / failed) | Same story for SMS. |
+| `com.twilio.intelligence.operator-result.created` | **Only arrives via Event Streams** — this is why the subscription is mandatory. Scheduler attaches the result to the matching JobRun. |
+
+The exact list lives in `scripts/provision.py:SUBSCRIPTION_TYPES`. If the Create call fails with "unknown type" or "schema mismatch", browse `https://events.twilio.com/v1/Types` or the Twilio console → Events → Types, update the list, re-run.
