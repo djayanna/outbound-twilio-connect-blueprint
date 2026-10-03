@@ -26,7 +26,7 @@ from tac import TAC, TACConfig, VoiceTwiMLOptionsConversationRelay
 from tac.adapters.openai import with_tac_memory
 from tac.channels.sms import SMSChannel
 from tac.channels.voice import VoiceChannel
-from tac.channels.voice.conversation_relay.twiml import TwiMLRequest
+from tac.models.voice import TwiMLRequest
 from tac.models.session import ConversationSession
 from tac.models.tac import TACMemoryResponse
 from tac.server import TACFastAPIServer
@@ -191,7 +191,9 @@ if _built is not None:
     # Register our scenario-aware /twiml BEFORE TACFastAPIServer so our
     # route wins the match. We call back into TAC's VoiceChannel to do
     # the heavy lifting; we only override the welcome_greeting.
-    @app.post(_tac.config.twiml_path)
+    # /twiml is TACServerConfig.twiml_path's default — override via
+    # TACServerConfig if you ever customize the path.
+    @app.post("/twiml")
     async def scenario_twiml(request: Request) -> Response:
         form = await request.form()
         form_dict = {k: v for k, v in form.items() if isinstance(v, str)}
