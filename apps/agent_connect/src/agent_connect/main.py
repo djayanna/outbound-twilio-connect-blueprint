@@ -20,11 +20,13 @@ from __future__ import annotations
 import logging
 
 import httpx
-from fastapi import FastAPI
-from tac import TAC, TACConfig
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+from tac import TAC, TACConfig, VoiceTwiMLOptionsConversationRelay
 from tac.adapters.openai import with_tac_memory
 from tac.channels.sms import SMSChannel
 from tac.channels.voice import VoiceChannel
+from tac.channels.voice.conversation_relay.twiml import TwiMLRequest
 from tac.models.session import ConversationSession
 from tac.models.tac import TACMemoryResponse
 from tac.server import TACFastAPIServer
@@ -83,27 +85,27 @@ def _instructions_with_context(system_prompt: str, job_context: dict) -> str:
 _MACHINE_ANSWERED = {"machine_start", "machine_end_beep", "machine_end_silence", "machine_end_other"}
 
 
-async def _fetch_run_hint(call_sid: str | None) -> tuple[str | None, dict]:
-    """Ask the scheduler whether this live call hit a voicemail.
+async def _fetch_run_hint(call_sid: str | None) -> tuple[str | None, str | None, dict]:
+    """Ask the scheduler for AMD verdict + Job metadata for this live call.
 
-    Returns (answered_by, job_context). Both default to None/{} if the
-    scheduler is unreachable or the sid isn't known — in that case we
-    behave as if a human picked up (safest default).
+    Returns (answered_by, scenario, job_context). Everything defaults to
+    None/{} if the scheduler is unreachable or the sid isn't known — in
+    that case we behave as a generic agent (safest default).
     """
     if not call_sid or not settings.scheduler_internal_url:
-        return None, {}
+        return None, None, {}
     url = f"{settings.scheduler_internal_url.rstrip('/')}/runs/by-sid/{call_sid}"
     try:
         async with httpx.AsyncClient(timeout=3) as c:
             r = await c.get(url)
         if r.status_code != 200:
-            return None, {}
+            return None, None, {}
         body = r.json()
         run = body.get("run") or {}
         job = body.get("job") or {}
-        return run.get("answered_by"), (job.get("context") or {})
+        return run.get("answered_by"), job.get("scenario"), (job.get("context") or {})
     except httpx.HTTPError:
-        return None, {}
+        return None, None, {}
 
 
 def _call_sid_from(context: ConversationSession) -> str | None:
@@ -128,11 +130,14 @@ async def _handle_message_ready(
     persona.
     """
     attrs = _attrs(context)
-    scenario = get_scenario(_scenario_key(context))
 
-    # Prefer the live run hint from the scheduler over Conversation attrs —
-    # attrs are set at outbound time; the AMD verdict arrives after.
-    answered_by, hint_ctx = await _fetch_run_hint(_call_sid_from(context))
+    # Pull everything the scheduler knows about this call — scenario,
+    # Job context, and AMD verdict (if any). Attributes on the TAC
+    # ConversationSession aren't set by the current outbound path, so
+    # the scheduler is the only source of scenario truth per-call.
+    answered_by, hint_scenario, hint_ctx = await _fetch_run_hint(_call_sid_from(context))
+    scenario_key = hint_scenario or _scenario_key(context)
+    scenario = get_scenario(scenario_key)
     job_context = hint_ctx or (attrs.get("context") or {})
 
     is_voicemail = (
@@ -182,7 +187,40 @@ _built = _build_tac()
 if _built is not None:
     _tac, _voice, _sms = _built
     _tac.on_message_ready(_handle_message_ready)
+
+    # Register our scenario-aware /twiml BEFORE TACFastAPIServer so our
+    # route wins the match. We call back into TAC's VoiceChannel to do
+    # the heavy lifting; we only override the welcome_greeting.
+    @app.post(_tac.config.twiml_path)
+    async def scenario_twiml(request: Request) -> Response:
+        form = await request.form()
+        form_dict = {k: v for k, v in form.items() if isinstance(v, str)}
+        twiml_request = TwiMLRequest.from_form(form_dict)
+        call_sid = form_dict.get("CallSid")
+        _, hint_scenario, hint_ctx = await _fetch_run_hint(call_sid)
+        scenario = get_scenario(hint_scenario or "default")
+        welcome = _render_welcome(scenario.voice_welcome, hint_ctx)
+        twiml = await _voice.handle_incoming_call(
+            twiml_request=twiml_request,
+            host_twiml_options=VoiceTwiMLOptionsConversationRelay(welcome_greeting=welcome),
+        )
+        return Response(content=twiml, media_type="application/xml")
+
     TACFastAPIServer(tac=_tac, voice_channel=_voice, messaging_channels=[_sms], app=app)
+
+
+def _render_welcome(welcome: str, job_context: dict) -> str:
+    """Format {placeholders} in the voice_welcome against job_context.
+
+    Missing keys fall back to the raw template so the call still goes
+    through even when context is sparse.
+    """
+    if not welcome:
+        return welcome
+    try:
+        return welcome.format(**job_context)
+    except (KeyError, IndexError):
+        return welcome
 
 
 @app.get("/health")

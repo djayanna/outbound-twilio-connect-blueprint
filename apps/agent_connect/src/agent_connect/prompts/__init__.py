@@ -55,8 +55,9 @@ _SCENARIOS: dict[str, Scenario] = {
             "or CANCEL to cancel."
         ),
         voice_welcome=(
-            "Hi, I'm calling about your upcoming appointment. "
-            "Is now a good time to confirm?"
+            "Hi, this is an automated reminder about your upcoming appointment "
+            "on {appointment_time}. I can confirm it, help you reschedule, "
+            "or cancel. What would you like to do?"
         ),
         voicemail_prompt=(
             "Leave a voicemail reminding the recipient about their appointment "
@@ -76,8 +77,9 @@ _SCENARIOS: dict[str, Scenario] = {
             "Reply PAY to receive a secure link, or CALL to speak with us."
         ),
         voice_welcome=(
-            "Hi, I'm calling about an outstanding balance on your account. "
-            "Do you have a moment to review it?"
+            "Hi, this is an automated reminder about a balance due on your "
+            "account. I can walk you through paying now or arranging a payment "
+            "plan. Which would you like?"
         ),
         voicemail_prompt=(
             "Leave a voicemail noting there is an outstanding balance on "
@@ -96,7 +98,11 @@ _SCENARIOS: dict[str, Scenario] = {
             "Hi — here's an update on the offer you signed up for. "
             "Reply STOP to opt out."
         ),
-        voice_welcome="Hi, I'm calling about the offer you signed up for.",
+        voice_welcome=(
+            "Hi, this is an automated follow-up on an offer you signed up for. "
+            "Reply STOP at any time to opt out — is now a good time to share "
+            "the details?"
+        ),
     ),
 }
 
