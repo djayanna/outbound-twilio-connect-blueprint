@@ -118,6 +118,20 @@ def ensure_memory_store(force: bool) -> str:
         json={"uniqueName": "voice-blueprint", "friendlyName": "voice-blueprint memory"},
         timeout=30,
     )
+    if r.status_code == 404:
+        # Twilio returns 20404 "resource not found" on POST /v1/Services when
+        # the Conversation Memory product isn't enabled on the account. The
+        # rest of the blueprint (scheduler, retry/fallback, AMD, Intelligence)
+        # works fine without Memory; log a clear pointer and continue.
+        print(
+            "  SKIP: Conversation Memory not enabled on this account.\n"
+            "  Enable it in the Twilio Console (Products → Conversation Memory)\n"
+            "  or contact your Twilio account team, then re-run provision.py.\n"
+            "  Downstream steps (Orchestrator, Intelligence, Event Streams)\n"
+            "  will proceed without a memory_store_id.",
+            file=sys.stderr,
+        )
+        return ""
     r.raise_for_status()
     sid = r.json()["sid"]
     _write_env("TWILIO_MEMORY_STORE_ID", sid)
@@ -137,35 +151,45 @@ def ensure_orchestrator_config(memory_store_id: str, force: bool) -> str:
     print("creating Orchestrator Configuration…")
     if not PHONE:
         print("  WARN: TWILIO_PHONE_NUMBER not set; capture rules will be left empty")
+
+    body: dict = {
+        "displayName": "voice-blueprint-config",
+        "conversationGroupingType": "GROUP_BY_PROFILE",
+        "channelSettings": {},
+    }
+    # Only attach Memory when the account has it enabled — otherwise
+    # Orchestrator rejects memoryStoreId with its own 404.
+    if memory_store_id:
+        body["memoryStoreId"] = memory_store_id
+        body["memoryExtractionEnabled"] = True
+    else:
+        print("  (no memory_store_id — creating configuration without Memory)")
+
+    body["channelSettings"] = {
+        "SMS": {
+            "captureRules": (
+                [
+                    {"from": PHONE, "to": "*", "metadata": {}},
+                    {"from": "*", "to": PHONE, "metadata": {}},
+                ]
+                if PHONE
+                else []
+            ),
+            "statusTimeouts": {"inactive": 10, "closed": 60},
+        },
+        # VOICE: active TwiML, no capture rules — avoid double STT billing.
+        "VOICE": {"statusTimeouts": {"inactive": 10, "closed": 60}},
+    }
+
     r = httpx.post(
         "https://conversations.twilio.com/v2/ControlPlane/Configurations",
         auth=AUTH,
-        json={
-            "displayName": "voice-blueprint-config",
-            "conversationGroupingType": "GROUP_BY_PROFILE",
-            "memoryStoreId": memory_store_id,
-            "memoryExtractionEnabled": True,
-            "channelSettings": {
-                "SMS": {
-                    "captureRules": (
-                        [
-                            {"from": PHONE, "to": "*", "metadata": {}},
-                            {"from": "*", "to": PHONE, "metadata": {}},
-                        ]
-                        if PHONE
-                        else []
-                    ),
-                    "statusTimeouts": {"inactive": 10, "closed": 60},
-                },
-                # VOICE: active TwiML, no capture rules — avoid double STT billing.
-                "VOICE": {"statusTimeouts": {"inactive": 10, "closed": 60}},
-            },
-        },
+        json=body,
         timeout=30,
     )
     r.raise_for_status()
-    body = r.json()
-    config_id = body.get("id") or body.get("operation", {}).get("resource", {}).get("id", "")
+    resp = r.json()
+    config_id = resp.get("id") or resp.get("operation", {}).get("resource", {}).get("id", "")
     _write_env("TWILIO_CONVERSATION_CONFIGURATION_ID", config_id)
     return config_id
 

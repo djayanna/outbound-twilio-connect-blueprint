@@ -10,6 +10,23 @@ The scheduler couldn't find a JobRun with a matching `CallSid` / `MessageSid`. P
 - You're pointing Twilio's status callback at a different scheduler instance than the one that initiated the call. Verify `SCHEDULER_PUBLIC_URL` matches the ingress your Twilio Call was created with.
 - You're sending Event Streams events to `/internal/events` from event-ingestor but the Job was created on a scheduler instance running against a different SQLite file. Check `JOBS_DB_PATH`.
 
+### `scripts/provision.py` → 404 `20404` on `POST /v1/Services`
+
+Full error:
+
+```
+Twilio API error: 404 {"code":20404,"message":"The requested resource /v1/Services was not found", …}
+```
+
+Conversation Memory is a Twilio product that must be **enabled on your account** before `memory.twilio.com/v1/Services` becomes reachable. Twilio returns 20404 on accounts that don't have it.
+
+Fix:
+1. Go to the Twilio Console → **Products** → look for "Conversation Memory" (or "Memora" on older consoles) and request access / enable.
+2. If it's not listed at all, contact your Twilio account team or support — Memory is still gated by region/tier on some accounts.
+3. Re-run `scripts/provision.py`.
+
+Workaround while you wait: provision.py now skips Memory on 20404 and continues with the rest of the stack. The Orchestrator Configuration is created without `memoryStoreId`; agent-connect runs with Memory recall disabled but everything else (voice, SMS, retry/fallback, AMD, Intelligence Summary + Sentiment) works. Fill in `TWILIO_MEMORY_STORE_ID` and re-run provision once the product is enabled.
+
 ### agent-connect boots but TAC routes don't exist
 
 The warning line in logs will say:
