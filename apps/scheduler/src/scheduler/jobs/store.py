@@ -44,5 +44,11 @@ class JobStore:
     def concurrency_count(self, scenario: str) -> int:
         return self._repo.concurrency_count(scenario)
 
+    def queue_depth_by_scenario(self) -> dict[str, int]:
+        return self._repo.queue_depth_by_scenario()
+
+    def line_usage(self) -> dict[str, int]:
+        return self._repo.line_usage()
+
     def stats(self) -> dict:
         return self._repo.stats()

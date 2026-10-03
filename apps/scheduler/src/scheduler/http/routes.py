@@ -91,6 +91,16 @@ def stats(req: Request):
     return store(req).stats()
 
 
+@router.get("/stats/queues")
+def queue_depth(req: Request):
+    return {"by_scenario": store(req).queue_depth_by_scenario()}
+
+
+@router.get("/stats/lines")
+def line_usage(req: Request):
+    return {"by_from": store(req).line_usage()}
+
+
 @router.get("/dnc")
 def dnc_list(req: Request):
     return {"entries": _dnc(req).list()}

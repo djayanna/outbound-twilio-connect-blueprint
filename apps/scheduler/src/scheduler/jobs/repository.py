@@ -91,6 +91,8 @@ class JobRepository(Protocol):
         self, scenario: str, to_number: str, job_id: str, window_ends_at: datetime
     ) -> str | None: ...
     def concurrency_count(self, scenario: str) -> int: ...
+    def queue_depth_by_scenario(self) -> dict[str, int]: ...
+    def line_usage(self) -> dict[str, int]: ...
     def stats(self) -> dict: ...
 
 
@@ -260,6 +262,30 @@ class SqliteJobRepository:
             (scenario,),
         ).fetchone()
         return int(row["n"] or 0)
+
+    def queue_depth_by_scenario(self) -> dict[str, int]:
+        """Jobs in scheduled/firing status, grouped by scenario (wallboard tiles)."""
+        rows = self._conn.execute(
+            """
+            SELECT scenario, COUNT(*) AS n FROM jobs
+            WHERE status IN ('scheduled','firing')
+            GROUP BY scenario ORDER BY n DESC
+            """
+        ).fetchall()
+        return {r["scenario"]: r["n"] for r in rows}
+
+    def line_usage(self) -> dict[str, int]:
+        """In-flight run count per `from_` number — line-capacity view."""
+        rows = self._conn.execute(
+            """
+            SELECT json_extract(j.payload, '$.from') AS from_num, COUNT(*) AS n
+            FROM job_runs r
+            JOIN jobs j ON j.id = r.job_id
+            WHERE r.status IN ('queued','in-progress')
+            GROUP BY from_num ORDER BY n DESC
+            """
+        ).fetchall()
+        return {(r["from_num"] or "default"): r["n"] for r in rows}
 
     def stats(self) -> dict:
         by_status: dict[str, int] = defaultdict(int)
