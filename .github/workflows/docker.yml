@@ -1,0 +1,35 @@
+name: docker
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: scheduler
+            dockerfile: apps/scheduler/Dockerfile
+          - name: agent-connect
+            dockerfile: apps/agent_connect/Dockerfile
+          - name: event-ingestor
+            dockerfile: apps/event_ingestor/Dockerfile
+          - name: test-harness
+            dockerfile: apps/test_harness/Dockerfile
+          - name: wallboard
+            dockerfile: apps/wallboard/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ matrix.name }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
