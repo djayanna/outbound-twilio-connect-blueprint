@@ -57,6 +57,25 @@ def list_jobs(req: Request, status: str | None = None):
     return {"jobs": [j.model_dump(by_alias=True) for j in jobs]}
 
 
+@router.get("/runs")
+def list_runs(
+    req: Request,
+    job_id: str | None = None,
+    status: str | None = None,
+    limit: int = 200,
+):
+    runs = store(req).list_runs(job_id=job_id, status=status, limit=limit)
+    return {"runs": [r.model_dump() for r in runs]}
+
+
+@router.get("/runs/{run_id}")
+def get_run(run_id: int, req: Request):
+    run = store(req).get_run(run_id)
+    if not run:
+        raise HTTPException(404, "run not found")
+    return {"run": run.model_dump()}
+
+
 @router.get("/stats")
 def stats(req: Request):
     return store(req).stats()

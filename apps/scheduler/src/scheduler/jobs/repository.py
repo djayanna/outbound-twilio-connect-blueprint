@@ -74,6 +74,10 @@ class JobRepository(Protocol):
     def put_run(self, run: JobRun) -> None: ...
     def runs_for(self, job_id: str) -> list[JobRun]: ...
     def run_by_twilio_sid(self, sid: str) -> JobRun | None: ...
+    def list_runs(
+        self, job_id: str | None = None, status: str | None = None, limit: int = 200
+    ) -> list[JobRun]: ...
+    def get_run(self, run_id: int) -> JobRun | None: ...
     def stats(self) -> dict: ...
 
 
@@ -171,6 +175,31 @@ class SqliteJobRepository:
             ORDER BY id DESC LIMIT 1
             """,
             (sid, sid),
+        ).fetchone()
+        return JobRun.model_validate_json(row["payload"]) if row else None
+
+    def list_runs(
+        self, job_id: str | None = None, status: str | None = None, limit: int = 200
+    ) -> list[JobRun]:
+        clauses: list[str] = []
+        params: list = []
+        if job_id is not None:
+            clauses.append("job_id = ?")
+            params.append(job_id)
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(limit)
+        rows = self._conn.execute(
+            f"SELECT payload FROM job_runs {where} ORDER BY id DESC LIMIT ?",
+            params,
+        ).fetchall()
+        return [JobRun.model_validate_json(r["payload"]) for r in rows]
+
+    def get_run(self, run_id: int) -> JobRun | None:
+        row = self._conn.execute(
+            "SELECT payload FROM job_runs WHERE id = ?", (run_id,)
         ).fetchone()
         return JobRun.model_validate_json(row["payload"]) if row else None
 
