@@ -16,6 +16,7 @@ class Settings:
     dev_mode: bool = os.getenv("DEV_MODE", "0") == "1"
     dedupe_window_seconds: int = int(os.getenv("DEDUPE_WINDOW_SECONDS", "3600"))
     concurrency_per_scenario: int = int(os.getenv("CONCURRENCY_PER_SCENARIO", "10"))
+    upstream_signing_key: str = os.getenv("UPSTREAM_CALLBACK_SIGNING_KEY", "")
 
 
 settings = Settings()

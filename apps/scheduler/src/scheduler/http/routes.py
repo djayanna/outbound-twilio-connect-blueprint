@@ -5,6 +5,7 @@ from voice_blueprint_shared.job import Job
 
 from scheduler.jobs.lifecycle import accept_job
 from scheduler.jobs.store import JobStore
+from scheduler.outbound.notify import record_and_notify
 from scheduler.policy.dnc_repository import DncRepository
 
 router = APIRouter()
@@ -27,14 +28,13 @@ def _dnc(req: Request) -> DncRepository:
 async def create_job(job: Job, req: Request):
     existing = store(req).get_job(job.id)
     if existing is not None:
-        audit_record(
+        record_and_notify(
             req.app.state.audit_db,
-            AuditEvent(
-                actor="scheduler",
-                action="job.duplicate",
-                subject=job.id,
-                data={"existing_status": existing.status},
-            ),
+            actor="scheduler",
+            action="job.duplicate",
+            job=existing,
+            subject=job.id,
+            data={"existing_status": existing.status},
         )
         return {
             "job": existing.model_dump(by_alias=True),
@@ -42,14 +42,13 @@ async def create_job(job: Job, req: Request):
         }
 
     decision = await accept_job(job, store(req))
-    audit_record(
+    record_and_notify(
         req.app.state.audit_db,
-        AuditEvent(
-            actor="scheduler",
-            action=f"job.{decision.outcome}",
-            subject=job.id,
-            data={"reason": decision.reason, "scheduled_for": str(job.scheduled_for)},
-        ),
+        actor="scheduler",
+        action=f"job.{decision.outcome}",
+        job=job,
+        subject=job.id,
+        data={"reason": decision.reason, "scheduled_for": str(job.scheduled_for)},
     )
     return {"job": job.model_dump(by_alias=True), "decision": decision.model_dump()}
 

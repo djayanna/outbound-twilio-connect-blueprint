@@ -21,12 +21,12 @@ import sqlite3
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
-from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import Job, JobRun
 
 from scheduler.config import settings
 from scheduler.jobs.store import JobStore
 from scheduler.outbound.agent_client import initiate_outbound
+from scheduler.outbound.notify import record_and_notify
 
 log = logging.getLogger("scheduler.worker")
 
@@ -110,14 +110,13 @@ async def _fire(
         attempt = len(store.runs_for(job.id)) + 1
         run = JobRun(job_id=job.id, attempt=attempt, status="queued")
     store.put_run(run)
-    audit_record(
+    record_and_notify(
         audit_db,
-        AuditEvent(
-            actor="scheduler",
-            action="run.queued",
-            subject=job.id,
-            data={"attempt": attempt, "channel": job.channel},
-        ),
+        actor="scheduler",
+        action="run.queued",
+        job=job,
+        subject=job.id,
+        data={"attempt": attempt, "channel": job.channel},
     )
 
     try:
@@ -127,14 +126,13 @@ async def _fire(
         run.terminal_reason = f"agent_connect_error:{type(exc).__name__}"
         run.ended_at = datetime.now(UTC)
         store.put_run(run)
-        audit_record(
+        record_and_notify(
             audit_db,
-            AuditEvent(
-                actor="scheduler",
-                action="run.failed",
-                subject=job.id,
-                data={"attempt": attempt, "reason": run.terminal_reason},
-            ),
+            actor="scheduler",
+            action="run.failed",
+            job=job,
+            subject=job.id,
+            data={"attempt": attempt, "reason": run.terminal_reason},
         )
         log.warning("fire failed for job %s: %s", job.id, exc)
         return
@@ -143,18 +141,17 @@ async def _fire(
     run.twilio_message_sid = result.get("twilio_message_sid")
     run.started_at = datetime.now(UTC)
     store.put_run(run)
-    audit_record(
+    record_and_notify(
         audit_db,
-        AuditEvent(
-            actor="scheduler",
-            action="run.dispatched",
-            subject=job.id,
-            data={
-                "attempt": attempt,
-                "twilio_call_sid": run.twilio_call_sid,
-                "twilio_message_sid": run.twilio_message_sid,
-            },
-        ),
+        actor="scheduler",
+        action="run.dispatched",
+        job=job,
+        subject=job.id,
+        data={
+            "attempt": attempt,
+            "twilio_call_sid": run.twilio_call_sid,
+            "twilio_message_sid": run.twilio_message_sid,
+        },
     )
 
 

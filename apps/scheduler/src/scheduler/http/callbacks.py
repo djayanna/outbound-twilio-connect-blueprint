@@ -21,6 +21,7 @@ from scheduler.config import settings
 from scheduler.fallback.channel import next_channel
 from scheduler.jobs.retry import next_attempt
 from scheduler.jobs.store import JobStore
+from scheduler.outbound.notify import record_and_notify
 
 router = APIRouter()
 
@@ -110,57 +111,51 @@ def _apply_status(sid: str, raw_status: str, store: JobStore, audit_db, source: 
         run.started_at = _now()
 
     store.put_run(run)
-    audit_record(
+    job = store.get_job(run.job_id)
+    record_and_notify(
         audit_db,
-        AuditEvent(
-            actor=source,
-            action=f"run.{new_status}",
-            subject=run.job_id,
-            data={
-                "attempt": run.attempt,
-                "sid": sid,
-                "twilio_status": raw_status,
-                "terminal_reason": terminal_reason,
-            },
-        ),
+        actor=source,
+        action=f"run.{new_status}",
+        job=job,
+        subject=run.job_id,
+        data={
+            "attempt": run.attempt,
+            "sid": sid,
+            "twilio_status": raw_status,
+            "terminal_reason": terminal_reason,
+        },
     )
 
-    if new_status == "failed":
-        _maybe_retry(run, terminal_reason, store, audit_db)
+    if new_status == "failed" and job is not None:
+        _maybe_retry(job, run, terminal_reason, store, audit_db)
 
 
 def _maybe_retry(
-    run: JobRun, terminal_reason: str | None, store: JobStore, audit_db
+    job, run: JobRun, terminal_reason: str | None, store: JobStore, audit_db
 ) -> None:
     """Enqueue a next attempt (optionally on a different channel) if policy allows."""
-    job = store.get_job(run.job_id)
-    if not job:
-        return
     nxt = next_attempt(job, run)
     if nxt is None:
-        audit_record(
+        record_and_notify(
             audit_db,
-            AuditEvent(
-                actor="scheduler",
-                action="job.exhausted",
-                subject=job.id,
-                data={"attempts": run.attempt, "terminal_reason": terminal_reason},
-            ),
+            actor="scheduler",
+            action="job.exhausted",
+            job=job,
+            subject=job.id,
+            data={"attempts": run.attempt, "terminal_reason": terminal_reason},
         )
         return
 
     swap = next_channel(job, terminal_reason)
     if swap and swap != job.channel:
         job.channel = swap
-        audit_record(
+        record_and_notify(
             audit_db,
-            AuditEvent(
-                actor="scheduler",
-                action="job.channel_fallback",
-                subject=job.id,
-                data={"from": run.attempt, "to_channel": swap,
-                      "reason": terminal_reason},
-            ),
+            actor="scheduler",
+            action="job.channel_fallback",
+            job=job,
+            subject=job.id,
+            data={"from": run.attempt, "to_channel": swap, "reason": terminal_reason},
         )
 
     # Promote back to firing — the worker loop picks it up next tick and
@@ -168,14 +163,13 @@ def _maybe_retry(
     job.status = "firing"
     store.put_job(job)
     store.put_run(nxt)
-    audit_record(
+    record_and_notify(
         audit_db,
-        AuditEvent(
-            actor="scheduler",
-            action="run.retry_scheduled",
-            subject=job.id,
-            data={"attempt": nxt.attempt, "channel": job.channel},
-        ),
+        actor="scheduler",
+        action="run.retry_scheduled",
+        job=job,
+        subject=job.id,
+        data={"attempt": nxt.attempt, "channel": job.channel},
     )
 
 
