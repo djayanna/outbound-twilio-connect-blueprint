@@ -67,6 +67,13 @@ async def _tick(store: JobStore, audit_db: sqlite3.Connection, caller: AgentCall
     for job in store.list_jobs(status="firing"):
         if _has_live_run(store, job):
             continue
+        if _has_terminal_run(store, job):
+            # Nothing more to do — the status-callback handler stages any
+            # retry as a `pending` run. If the latest run completed cleanly
+            # and no pending retry is queued, close the job.
+            job.status = "done"
+            store.put_job(job)
+            continue
         if cap > 0 and store.concurrency_count(job.scenario) >= cap:
             # Deferred — leave status=firing, pick up next tick when a slot frees.
             continue
@@ -83,7 +90,25 @@ def _is_due(job: Job, now: datetime) -> bool:
 
 
 def _has_live_run(store: JobStore, job: Job) -> bool:
+    """A run that's already working through Twilio.
+
+    `pending` is NOT live — it's a retry waiting for its backoff to elapse.
+    `_fire` detects a due pending via `_pending_run()` and promotes it to
+    `queued` instead of creating a brand-new attempt.
+    """
     return any(r.status in ("queued", "in-progress") for r in store.runs_for(job.id))
+
+
+def _has_terminal_run(store: JobStore, job: Job) -> bool:
+    """True when every run on this job has reached a terminal state.
+
+    Terminal = completed OR failed with no retry queued (the status-callback
+    handler stages retries as `pending` runs, so `pending` means "work to do").
+    """
+    runs = store.runs_for(job.id)
+    if not runs:
+        return False
+    return all(r.status in ("completed", "failed", "suppressed") for r in runs)
 
 
 def _pending_run(store: JobStore, job: Job) -> JobRun | None:
