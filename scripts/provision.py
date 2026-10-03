@@ -200,6 +200,10 @@ def _orchestrator_body(memory_store_id: str, intelligence_config_id: str) -> dic
     then process). Without rules, Memory never ingests the transcript
     and no observations are written. We opt both VOICE and SMS in for
     traffic to/from our Twilio number.
+
+    statusCallbacks points at agent-connect's /webhook — TAC's SMSChannel
+    + conversation webhook handler lives there. Without this, inbound SMS
+    replies never reach the LLM.
     """
     rules = (
         [
@@ -232,6 +236,13 @@ def _orchestrator_body(memory_store_id: str, intelligence_config_id: str) -> dic
     }
     if intelligence_config_id:
         body["intelligenceConfigurationIds"] = [intelligence_config_id]
+    # Where the Orchestrator POSTs Conversation lifecycle events (inbound
+    # SMS messages, status changes, etc.). Must be reachable from Twilio.
+    voice_domain = os.environ.get("TWILIO_VOICE_PUBLIC_DOMAIN", "")
+    if voice_domain:
+        body["statusCallbacks"] = [
+            {"url": f"https://{voice_domain}/webhook", "method": "POST"}
+        ]
     return body
 
 
