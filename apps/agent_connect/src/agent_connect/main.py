@@ -32,6 +32,7 @@ from voice_blueprint_shared.otel import init_otel
 from agent_connect.config import settings
 from agent_connect.handlers import outbound
 from agent_connect.prompts import get as get_scenario
+from agent_connect.tools import SCENARIO_TOOLS, set_upstream_api_url
 
 log = logging.getLogger("agent_connect")
 
@@ -57,13 +58,24 @@ def _build_tac() -> tuple[TAC, VoiceChannel, SMSChannel] | None:
     return tac, VoiceChannel(tac), SMSChannel(tac)
 
 
-def _scenario_from_context(context: ConversationSession) -> str:
+def _attrs(context: ConversationSession) -> dict:
+    return getattr(context, "attributes", None) or {}
+
+
+def _scenario_key(context: ConversationSession) -> str:
     """Scenario travels in the Conversation attributes we set on outbound.
 
     Falls back to "default" so inbound (unprompted) conversations still work.
     """
-    attrs = getattr(context, "attributes", None) or {}
-    return attrs.get("scenario", "default")
+    return _attrs(context).get("scenario", "default")
+
+
+def _instructions_with_context(system_prompt: str, job_context: dict) -> str:
+    """Append the Job.context as a sanitized k=v block the LLM can reference."""
+    if not job_context:
+        return system_prompt
+    lines = [f"- {k}: {v}" for k, v in job_context.items() if not k.startswith("_")]
+    return system_prompt + "\n\nContext from the originating system:\n" + "\n".join(lines)
 
 
 async def _handle_message_ready(
@@ -71,15 +83,18 @@ async def _handle_message_ready(
     context: ConversationSession,
     memory: TACMemoryResponse | None,
 ) -> str | None:
-    """LLM turn. Scenario-aware system prompt + Memory-wrapped OpenAI."""
-    scenario = get_scenario(_scenario_from_context(context))
+    """LLM turn. Scenario-aware system prompt + Memory-wrapped OpenAI + tools."""
+    attrs = _attrs(context)
+    scenario = get_scenario(_scenario_key(context))
+    job_context = attrs.get("context") or {}
+
+    # Make the upstream backend URL available to tool implementations.
+    set_upstream_api_url(job_context.get("upstream_api_url"))
 
     if not settings.openai_api_key:
         log.warning("OPENAI_API_KEY not set; returning stub reply")
         return f"[{scenario.key}] (stub) You said: {message}"
 
-    # Lazy-imported so the service boots even without the openai package
-    # fully configured.
     from openai import AsyncOpenAI
 
     client = with_tac_memory(
@@ -87,11 +102,15 @@ async def _handle_message_ready(
         memory,
         context,
     )
-    response = await client.responses.create(
-        model=settings.openai_model,
-        instructions=scenario.system_prompt,
-        input=message,
-    )
+    kwargs: dict = {
+        "model": settings.openai_model,
+        "instructions": _instructions_with_context(scenario.system_prompt, job_context),
+        "input": message,
+    }
+    tools = SCENARIO_TOOLS.get(scenario.key)
+    if tools:
+        kwargs["tools"] = [t.to_openai_tool() if hasattr(t, "to_openai_tool") else t for t in tools]
+    response = await client.responses.create(**kwargs)
     return getattr(response, "output_text", None) or str(response)
 
 
