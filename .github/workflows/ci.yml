@@ -1,5 +1,14 @@
 name: ci
 
+# All third-party action references are pinned to full 40-char commit SHAs
+# (not tags) so a compromised or retargeted tag cannot execute attacker code
+# in this workflow. The trailing comment is the human-readable version each
+# SHA corresponds to — bump both when upgrading. Resolve a new SHA with:
+#
+#   gh api repos/<owner>/<repo>/git/refs/tags/<tag> --jq '.object.sha'
+#
+# (if the tag is annotated, deref via /git/tags/<sha>).
+
 on:
   push:
     branches: [main]
@@ -10,8 +19,8 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4 (floating)
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
       - name: Set up Python
@@ -29,8 +38,8 @@ jobs:
       matrix:
         app: [test_harness, wallboard]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4 (floating)
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "20"
           cache: "npm"
