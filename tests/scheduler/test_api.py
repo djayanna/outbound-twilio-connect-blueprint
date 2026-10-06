@@ -38,7 +38,21 @@ def test_post_jobs_accepted(client):
 def test_post_jobs_idempotent(client):
     client.post("/jobs", json=_job())
     r = client.post("/jobs", json=_job())
-    assert r.json()["decision"]["outcome"] == "duplicate"
+    decision = r.json()["decision"]
+    assert decision["outcome"] == "duplicate"
+    assert decision["reason"] == "job_id_already_submitted"
+
+
+def test_duplicate_decision_validates(client):
+    """The duplicate path must round-trip through AcceptanceDecision —
+    an unknown outcome would raise, catching a drifted enum."""
+    from scheduler.jobs.lifecycle import AcceptanceDecision
+
+    client.post("/jobs", json=_job(id="dup-x"))
+    r = client.post("/jobs", json=_job(id="dup-x"))
+    # pydantic validates — this constructs cleanly only if outcome is
+    # a Literal["accepted", "suppressed", "duplicate"].
+    AcceptanceDecision.model_validate(r.json()["decision"])
 
 
 def test_post_jobs_dedupes_different_id_same_scenario_to(client):

@@ -4,7 +4,7 @@ from voice_blueprint_shared.audit import AuditEvent, audit_record
 from voice_blueprint_shared.job import Job
 
 from scheduler.http.auth import require_api_key
-from scheduler.jobs.lifecycle import accept_job
+from scheduler.jobs.lifecycle import AcceptanceDecision, accept_job
 from scheduler.jobs.store import JobStore
 from scheduler.outbound.notify import record_and_notify
 from scheduler.policy.dnc_repository import DncRepository
@@ -37,9 +37,12 @@ async def create_job(job: Job, req: Request):
             subject=job.id,
             data={"existing_status": existing.status},
         )
+        duplicate = AcceptanceDecision(
+            outcome="duplicate", reason="job_id_already_submitted"
+        )
         return {
             "job": existing.model_dump(by_alias=True),
-            "decision": {"outcome": "duplicate", "reason": "job_id_already_submitted"},
+            "decision": duplicate.model_dump(),
         }
 
     decision = await accept_job(job, store(req))

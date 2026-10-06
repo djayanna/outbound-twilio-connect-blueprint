@@ -26,9 +26,9 @@ from tac import TAC, TACConfig, VoiceTwiMLOptionsConversationRelay
 from tac.adapters.openai import with_tac_memory
 from tac.channels.sms import SMSChannel
 from tac.channels.voice import VoiceChannel
-from tac.models.voice import TwiMLRequest
 from tac.models.session import ConversationSession
 from tac.models.tac import TACMemoryResponse
+from tac.models.voice import TwiMLRequest
 from tac.server import TACFastAPIServer
 from voice_blueprint_shared.otel import init_otel
 
