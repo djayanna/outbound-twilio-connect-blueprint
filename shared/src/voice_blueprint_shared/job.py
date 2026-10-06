@@ -19,6 +19,8 @@ class Consent(BaseModel):
 class Constraints(BaseModel):
     allowed_hours_local: tuple[str, str] | None = None
     do_not_contact_before: datetime | None = None
+    # IANA zone (e.g. "America/New_York"). Overrides the number-derived timezone.
+    timezone: str | None = None
 
 
 class RetryPolicy(BaseModel):
@@ -55,3 +57,6 @@ class JobRun(BaseModel):
     started_at: datetime | None = None
     ended_at: datetime | None = None
     terminal_reason: str | None = None
+    # AMD verdict for voice runs; agent-connect reads this to decide whether
+    # to behave as "live conversation" or "leaving a voicemail."
+    answered_by: str | None = None

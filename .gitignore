@@ -127,10 +127,26 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Node / Vite UIs
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
 # Environments
 .env
 .venv
 env/
+
+# Blueprint-local state
+data/
+ngrok.local.yml
+
+# ngrok.yml is committed as a placeholder template; your real tunnel
+# config (with reserved domains, authtoken env refs, etc.) is personal
+# — don't check modifications in. Clone, edit locally, keep edits out
+# of the pushed branch via `git update-index --skip-worktree ngrok.yml`
+# if you don't want the diff showing up.
 venv/
 ENV/
 env.bak/

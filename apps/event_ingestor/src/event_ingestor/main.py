@@ -1,3 +1,4 @@
+import sqlite3
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -53,7 +54,12 @@ async def twilio_events(req: Request):
     return {"processed": processed}
 
 
-def _mark_seen(conn, event_id: str) -> bool:
+def _mark_seen(conn: sqlite3.Connection, event_id: str) -> bool:
+    """Return True if we haven't seen this event id before.
+
+    A primary-key clash means Twilio redelivered — Event Streams is
+    at-least-once. Any other DB error is a real problem and surfaces.
+    """
     if not event_id:
         return True
     try:
@@ -62,5 +68,5 @@ def _mark_seen(conn, event_id: str) -> bool:
             (event_id,),
         )
         return True
-    except Exception:
+    except sqlite3.IntegrityError:
         return False

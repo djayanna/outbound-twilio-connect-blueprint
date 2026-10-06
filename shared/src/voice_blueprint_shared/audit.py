@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +45,7 @@ def open_audit_db(path: str | Path) -> sqlite3.Connection:
 
 
 def audit_record(conn: sqlite3.Connection, event: AuditEvent) -> None:
-    at = (event.at or datetime.now(timezone.utc)).isoformat()
+    at = (event.at or datetime.now(UTC)).isoformat()
     conn.execute(
         "INSERT INTO audit (at, actor, action, subject, data) VALUES (?, ?, ?, ?, ?)",
         (at, event.actor, event.action, event.subject, json.dumps(event.data)),

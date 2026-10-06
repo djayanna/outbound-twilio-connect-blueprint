@@ -1,10 +1,33 @@
 version: "3"
-agent:
-  authtoken_from_env: true
+# authtoken is read from NGROK_AUTHTOKEN or from your global config at
+# ~/Library/Application Support/ngrok/ngrok.yml (ngrok 3 falls back to it).
+# Older examples show `agent: { authtoken_from_env: true }`; ngrok 3 does
+# not recognize that key and will refuse to start — omit entirely.
+#
+# Paid accounts: reserve static domains in the ngrok dashboard
+# (Universal Gateway → Domains) and set them below. The hostnames then
+# stop rotating on restart — your Twilio Event Streams sink stays
+# valid, your .env stops needing updates, and `scripts/provision.py`
+# only has to run once.
+#
+# Free accounts: delete the `domain:` lines and ngrok will assign
+# ephemeral *.ngrok.app hostnames on every start.
 tunnels:
+  # agent-connect — serves inbound TwiML, ConversationRelay WebSocket,
+  # SMS webhook, call-event callbacks. Points to TWILIO_VOICE_PUBLIC_DOMAIN.
   agent-connect:
     addr: 3002
     proto: http
+    domain: your-agent.ngrok.app
+  # scheduler — receives per-call statusCallback from Twilio.
+  # Points to SCHEDULER_PUBLIC_URL.
+  scheduler:
+    addr: 3001
+    proto: http
+    domain: your-scheduler.ngrok.app
+  # event-ingestor — Twilio Event Streams webhook sink target.
+  # Points to EVENT_INGESTOR_PUBLIC_URL.
   event-ingestor:
     addr: 3003
     proto: http
+    domain: your-events.ngrok.app
