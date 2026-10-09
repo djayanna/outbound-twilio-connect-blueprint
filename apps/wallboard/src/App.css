@@ -1,7 +1,8 @@
 :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
 body { margin: 0; }
 .wb { padding: 20px; display: grid; gap: 16px; }
-h1 { margin: 0 0 8px; font-size: 22px; }
+.wb-head { display: flex; align-items: center; gap: 20px; }
+h1 { margin: 0; font-size: 22px; }
 h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #666; }
 .panel { background: var(--panel, #fafafa); border: 1px solid var(--border, #ddd); border-radius: 8px; padding: 14px; }
 @media (prefers-color-scheme: dark) {
@@ -21,3 +22,44 @@ h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacin
 .audit th { font-size: 11px; text-transform: uppercase; color: #777; letter-spacing: .05em; }
 code.subject { font-size: 12px; color: #555; }
 .dim { color: #888; }
+
+/* ── tabs ──────────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 6px; }
+.tabs button {
+  font: inherit; font-size: 13px; cursor: pointer;
+  padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--border, #ddd); background: transparent; color: inherit;
+}
+.tabs button.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+
+/* ── conversations: master / detail ────────────────────────────────────── */
+.conv-view { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+@media (max-width: 760px) { .conv-view { grid-template-columns: 1fr; } }
+.conv-left, .conv-right { min-height: 420px; }
+.conv-left h2, .conv-right h2 { display: flex; justify-content: space-between; align-items: center; }
+.live { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: .04em; }
+.live.on  { background: rgba(25,135,84,.15); color: #198754; }
+.live.off { background: rgba(0,0,0,.08); color: #888; }
+
+.conv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.conv { padding: 8px 10px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+.conv:hover { background: rgba(13,110,253,.06); }
+.conv.selected { background: rgba(13,110,253,.1); border-color: rgba(13,110,253,.3); }
+.conv-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.conv-addr { font-weight: 600; font-size: 13px; }
+.conv-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; }
+.status { font-size: 10px; text-transform: lowercase; padding: 1px 7px; border-radius: 999px; background: rgba(0,0,0,.08); color: #777; }
+.status.active { background: rgba(25,135,84,.15); color: #198754; }
+.status.closed { background: rgba(0,0,0,.08); color: #888; }
+.chan { font-size: 10px; letter-spacing: .04em; padding: 1px 6px; border-radius: 4px; background: rgba(13,110,253,.12); color: #0d6efd; }
+
+/* ── transcript (chat style) ───────────────────────────────────────────── */
+.transcript { display: grid; gap: 18px; }
+.msg { display: grid; grid-template-columns: 72px 36px 1fr; gap: 10px; align-items: start; }
+.msg-time { font-size: 12px; padding-top: 4px; text-align: right; }
+.msg-avatar { color: #7c4dff; }
+.avatar.customer { color: #555; }
+@media (prefers-color-scheme: dark) { .avatar.customer { color: #bbb; } }
+.msg-who { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+.msg-text { font-size: 15px; line-height: 1.5; border-left: 2px solid rgba(0,0,0,.1); padding-left: 10px; }
+@media (prefers-color-scheme: dark) { .msg-text { border-left-color: rgba(255,255,255,.15); } }
