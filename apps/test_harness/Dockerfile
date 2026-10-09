@@ -5,7 +5,7 @@ RUN npm ci
 COPY apps/test_harness/ ./
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 # Simple SPA fallback + /api proxy to scheduler.
 RUN printf '%s\n' \
