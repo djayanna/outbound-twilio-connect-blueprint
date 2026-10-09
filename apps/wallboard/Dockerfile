@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY apps/wallboard/package.json apps/wallboard/package-lock.json ./
 RUN npm ci
