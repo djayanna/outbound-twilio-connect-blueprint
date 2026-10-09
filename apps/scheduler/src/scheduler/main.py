@@ -6,6 +6,7 @@ from voice_blueprint_shared.audit import open_audit_db
 from voice_blueprint_shared.otel import init_otel
 
 from scheduler.config import settings
+from scheduler.conversations.bus import ConversationBus
 from scheduler.conversations.repository import ConversationStore, open_conversations_db
 from scheduler.http import callbacks, conversation_events, conversations, routes
 from scheduler.jobs.repository import SqliteJobRepository, open_jobs_db
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
     app.state.jobs_db = open_jobs_db(settings.jobs_db_path)
     app.state.conversations_db = open_conversations_db(settings.conversations_db_path)
     app.state.conversations = ConversationStore(app.state.conversations_db)
+    app.state.conversation_bus = ConversationBus()
     app.state.store = JobStore(SqliteJobRepository(app.state.jobs_db))
     app.state.dnc = SqliteDncRepository(app.state.jobs_db)
     set_dnc_repository(app.state.dnc)

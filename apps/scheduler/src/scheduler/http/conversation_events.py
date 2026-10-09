@@ -25,6 +25,7 @@ from twilio.request_validator import RequestValidator
 from voice_blueprint_shared.audit import AuditEvent, audit_record
 
 from scheduler.config import settings
+from scheduler.conversations.bus import ConversationBus
 from scheduler.conversations.repository import ConversationStore
 
 router = APIRouter()
@@ -32,6 +33,10 @@ router = APIRouter()
 
 def _conversations(req: Request) -> ConversationStore:
     return req.app.state.conversations
+
+
+def _bus(req: Request) -> ConversationBus:
+    return req.app.state.conversation_bus
 
 
 @router.post("/twilio/conversation-events")
@@ -57,6 +62,10 @@ async def conversation_event(req: Request):
                 data={"event_type": event_type},
             ),
         )
+    else:
+        # Notify connected wallboards. The delta is a hint, not the payload —
+        # clients refetch from the local-DB read endpoints.
+        _bus(req).publish({"type": event_type, "conversation_id": conv_id})
     return {"ok": True}
 
 
