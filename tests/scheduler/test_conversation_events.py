@@ -109,3 +109,76 @@ def test_unhandled_event_type_is_accepted(client):
     r = _post(client, "SOMETHING_ELSE", {"id": "x"})
     assert r.status_code == 200
     assert client.get("/conversations").json()["conversations"] == []
+
+
+# ── signature validation (production path, auth token set) ─────────────────
+# Orchestrator signs JSON webhooks with a bodySHA256 query param + a signature
+# over the full URL. The earlier bug passed "" as the body, so RequestValidator
+# couldn't match the body hash and every real webhook 401'd. These lock in the
+# correct scheme.
+_TOKEN = "secret_token"
+
+
+@pytest.fixture()
+def signed_client(temp_dbs, monkeypatch):
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", _TOKEN)
+    monkeypatch.setenv("DEV_MODE", "0")
+    import importlib
+    import sys
+
+    for name in list(sys.modules):
+        if name == "scheduler" or name.startswith("scheduler."):
+            del sys.modules[name]
+    with patch(
+        "scheduler.worker.loop.initiate_outbound",
+        AsyncMock(return_value={"twilio_message_sid": "SM_test"}),
+    ):
+        from scheduler.main import app
+        with TestClient(app) as c:
+            yield c
+    for name in list(sys.modules):
+        if name == "scheduler" or name.startswith("scheduler."):
+            del sys.modules[name]
+    _ = importlib
+
+
+def _sign(body: str) -> tuple[str, str]:
+    """Build the (url, signature) pair exactly as Twilio does for a JSON webhook."""
+    from hashlib import sha256
+
+    from twilio.request_validator import RequestValidator
+
+    body_hash = sha256(body.encode()).hexdigest()
+    url = f"http://testserver/twilio/conversation-events?bodySHA256={body_hash}"
+    # With bodySHA256 present, the signature covers the URL with empty params —
+    # the body is verified via the hash, not folded into the signature.
+    sig = RequestValidator(_TOKEN).compute_signature(url, "")
+    return url, sig
+
+
+def test_valid_bodysha256_signature_accepted(signed_client):
+    import json
+
+    body = json.dumps(_event("CONVERSATION_CREATED", {"id": "CO_sig", "status": "ACTIVE"}))
+    url, sig = _sign(body)
+    r = signed_client.post(
+        url,
+        content=body,
+        headers={"X-Twilio-Signature": sig, "Content-Type": "application/json"},
+    )
+    assert r.status_code == 200
+    assert "CO_sig" in [c["id"] for c in signed_client.get("/conversations").json()["conversations"]]
+
+
+def test_missing_signature_rejected(signed_client):
+    r = signed_client.post("/twilio/conversation-events", json=_event("CONVERSATION_CREATED", {"id": "x"}))
+    assert r.status_code == 401
+
+
+def test_bad_signature_rejected(signed_client):
+    r = signed_client.post(
+        "/twilio/conversation-events",
+        json=_event("CONVERSATION_CREATED", {"id": "x"}),
+        headers={"X-Twilio-Signature": "nope"},
+    )
+    assert r.status_code == 401

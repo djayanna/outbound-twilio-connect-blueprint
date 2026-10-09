@@ -20,6 +20,8 @@ proves the Orchestrator signs differently, adjust `_verify_signature`; the
 """
 from __future__ import annotations
 
+from urllib.parse import parse_qs, urlsplit
+
 from fastapi import APIRouter, HTTPException, Request
 from twilio.request_validator import RequestValidator
 from voice_blueprint_shared.audit import AuditEvent, audit_record
@@ -83,10 +85,21 @@ def _dispatch(store: ConversationStore, event_type: str, data: dict) -> str | No
 
 
 def _verify_signature(req: Request, body: bytes) -> None:
-    """JSON webhook signing: HMAC-SHA1 over the URL alone (body excluded).
+    """Validate the Orchestrator webhook's X-Twilio-Signature.
 
-    Matches `event_ingestor.validation`. Dev bypass only when DEV_MODE=1 and
-    no auth token is set, so prod can't silently skip the check.
+    Conversation Orchestrator signs its JSON webhooks the standard Twilio way
+    for JSON bodies: it appends a ``bodySHA256`` query param and signs the full
+    URL. RequestValidator re-hashes the raw body, compares it to that param,
+    then checks the signature over the URL. So we must pass the *raw body
+    string* as params — not an empty string (that was the earlier bug, which
+    401'd every real webhook), and not the parsed form (this isn't form-encoded).
+
+    The URL is rebuilt from X-Forwarded-* headers because behind the ngrok
+    tunnel ``req.url`` reports the internal http://host, not the public https://
+    URL Twilio actually signed.
+
+    Dev bypass only when DEV_MODE=1 and no auth token is set, so prod can't
+    silently skip the check.
     """
     sig = req.headers.get("X-Twilio-Signature")
     token = settings.auth_token
@@ -96,9 +109,33 @@ def _verify_signature(req: Request, body: bytes) -> None:
         raise HTTPException(status_code=500, detail="auth token not configured")
     if not sig:
         raise HTTPException(status_code=401, detail="missing signature")
-    validator = RequestValidator(token)
-    if not validator.validate(str(req.url), "", sig):
+    url = _signed_url(req)
+    # A genuine Orchestrator JSON webhook always carries bodySHA256. Without it
+    # RequestValidator can't hash the body and would raise TypeError on a str
+    # body, so fail closed rather than crash.
+    if "bodySHA256" not in parse_qs(urlsplit(url).query):
         raise HTTPException(status_code=401, detail="invalid signature")
+    validator = RequestValidator(token)
+    if not validator.validate(url, body.decode("utf-8"), sig):
+        raise HTTPException(status_code=401, detail="invalid signature")
+
+
+def _signed_url(req: Request) -> str:
+    """Reconstruct the public URL Twilio signed, honoring proxy headers.
+
+    ngrok (and most reverse proxies) forward the original scheme/host in
+    X-Forwarded-Proto / X-Forwarded-Host; the raw request sees the internal
+    hop. Twilio computed the signature over the public URL, so we must too.
+    Comma-separated values (multi-proxy chains) take the first entry.
+    """
+    proto = (req.headers.get("x-forwarded-proto") or req.url.scheme).split(",")[0].strip()
+    host = (
+        req.headers.get("x-forwarded-host")
+        or req.headers.get("host")
+        or req.url.netloc
+    ).split(",")[0].strip()
+    url = f"{proto}://{host}{req.url.path}"
+    return f"{url}?{req.url.query}" if req.url.query else url
 
 
 __all__ = ["router"]
