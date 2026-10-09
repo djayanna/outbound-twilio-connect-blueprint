@@ -203,7 +203,9 @@ def _orchestrator_body(memory_store_id: str, intelligence_config_id: str) -> dic
 
     statusCallbacks points at agent-connect's /webhook — TAC's SMSChannel
     + conversation webhook handler lives there. Without this, inbound SMS
-    replies never reach the LLM.
+    replies never reach the LLM. We additionally register the scheduler's
+    /twilio/conversation-events so it can mirror conversation/communication
+    state for the wallboard transcript view.
     """
     rules = (
         [
@@ -238,11 +240,20 @@ def _orchestrator_body(memory_store_id: str, intelligence_config_id: str) -> dic
         body["intelligenceConfigurationIds"] = [intelligence_config_id]
     # Where the Orchestrator POSTs Conversation lifecycle events (inbound
     # SMS messages, status changes, etc.). Must be reachable from Twilio.
+    # Twilio delivers to every URL in the array, so agent-connect (TAC) and
+    # the scheduler (wallboard mirror) can both subscribe.
+    callbacks: list[dict] = []
     voice_domain = os.environ.get("TWILIO_VOICE_PUBLIC_DOMAIN", "")
     if voice_domain:
-        body["statusCallbacks"] = [
-            {"url": f"https://{voice_domain}/webhook", "method": "POST"}
-        ]
+        callbacks.append({"url": f"https://{voice_domain}/webhook", "method": "POST"})
+    # SCHEDULER_PUBLIC_URL already includes the scheme (unlike the voice domain).
+    scheduler_url = os.environ.get("SCHEDULER_PUBLIC_URL", "").rstrip("/")
+    if scheduler_url:
+        callbacks.append(
+            {"url": f"{scheduler_url}/twilio/conversation-events", "method": "POST"}
+        )
+    if callbacks:
+        body["statusCallbacks"] = callbacks
     return body
 
 

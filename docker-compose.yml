@@ -9,8 +9,12 @@ services:
     environment:
       JOBS_DB_PATH: /data/jobs.db
       AUDIT_DB_PATH: /data/audit.db
+      CONVERSATIONS_DB_PATH: /data/conversations.db
       AGENT_CONNECT_URL: http://agent-connect:3002
       EVENT_INGESTOR_URL: http://event-ingestor:3003
+      # Public URL Twilio's Orchestrator posts conversation webhooks to; used
+      # by provision.py when registering the scheduler statusCallback.
+      SCHEDULER_PUBLIC_URL: ${SCHEDULER_PUBLIC_URL:-}
     ports: ["3001:3001"]
     volumes: [sql:/data]
 
