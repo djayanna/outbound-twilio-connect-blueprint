@@ -302,9 +302,16 @@ def ensure_orchestrator_config(
         json=body,
         timeout=30,
     )
-    r.raise_for_status()
+    if r.status_code >= 400:
+        print(f"  ERROR: {r.status_code} {r.text}", file=sys.stderr)
+        raise SystemExit(1)
+
     resp = r.json()
-    config_id = resp.get("id") or resp.get("operation", {}).get("resource", {}).get("id", "")
+    # API returns 202 Accepted with async operation; config ID is in related.configurationId
+    # See: https://www.twilio.com/docs/api/conversations/configuration/create-configuration
+    config_id = resp.get("related", {}).get("configurationId", "")
+    if not config_id:
+        print(f"  WARN: create response missing related.configurationId: {resp}", file=sys.stderr)
     _write_env("TWILIO_CONVERSATION_CONFIGURATION_ID", config_id)
     return config_id
 
