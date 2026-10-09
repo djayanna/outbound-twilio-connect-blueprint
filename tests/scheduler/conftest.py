@@ -16,8 +16,10 @@ import pytest
 def temp_dbs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     jobs = tmp_path / "jobs.db"
     audit = tmp_path / "audit.db"
+    conversations = tmp_path / "conversations.db"
     monkeypatch.setenv("JOBS_DB_PATH", str(jobs))
     monkeypatch.setenv("AUDIT_DB_PATH", str(audit))
+    monkeypatch.setenv("CONVERSATIONS_DB_PATH", str(conversations))
     monkeypatch.setenv("DEV_MODE", "1")
     # Clear secrets that would make /twilio/status or /twilio/amd try to
     # validate signatures. The signature path is covered by its own tests.
@@ -25,7 +27,7 @@ def temp_dbs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     monkeypatch.setenv("BLUEPRINT_API_KEY", "")
     # Avoid firing to real Twilio or event-ingestor
     monkeypatch.setenv("EVENT_INGESTOR_URL", "")
-    return {"jobs": str(jobs), "audit": str(audit)}
+    return {"jobs": str(jobs), "audit": str(audit), "conversations": str(conversations)}
 
 
 @pytest.fixture()
@@ -51,3 +53,4 @@ def _reload_settings(temp_dbs):
     _ = importlib  # keep import to silence linters
     os.environ.pop("JOBS_DB_PATH", None)
     os.environ.pop("AUDIT_DB_PATH", None)
+    os.environ.pop("CONVERSATIONS_DB_PATH", None)
